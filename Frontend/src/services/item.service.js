@@ -69,6 +69,17 @@ export const itemService = {
     }
   },
 
+  async import5000Products() {
+    try {
+      const res = await apiClient.post('/items/import-5000');
+      return res.data || res;
+    } catch (err) {
+      const { generate5000Products } = await import('../constants/products5000Catalog');
+      const items = generate5000Products();
+      return this.createBulkItems(items);
+    }
+  },
+
   async updateItem(id, payload) {
     try {
       const res = await apiClient.put(`/items/${id}`, payload);

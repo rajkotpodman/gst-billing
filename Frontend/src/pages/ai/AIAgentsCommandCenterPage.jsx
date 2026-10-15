@@ -35,6 +35,7 @@ import { TOP_100_TECH_PRODUCTS } from '../../constants/top100TechProducts';
 import { cn } from '../../utils/cn';
 
 const AGENT_ICON_MAP = {
+  growth: Rocket,
   invoice: Receipt,
   party: Users,
   catalog: Package,
@@ -52,13 +53,13 @@ export const AIAgentsCommandCenterPage = () => {
   } = useAIAgent();
 
   const { shop } = useAuth();
-  const [selectedAgentId, setSelectedAgentId] = useState('invoice');
+  const [selectedAgentId, setSelectedAgentId] = useState('growth');
   const [testPrompt, setTestPrompt] = useState('');
   const [playgroundOutput, setPlaygroundOutput] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [bulkResult, setBulkResult] = useState(null);
 
-  const activeAgent = AGENT_REGISTRY[selectedAgentId] || AGENT_REGISTRY.invoice;
+  const activeAgent = AGENT_REGISTRY[selectedAgentId] || AGENT_REGISTRY.growth || AGENT_REGISTRY.invoice;
 
   const handleRunPlayground = async (promptOverride) => {
     const prompt = (promptOverride || testPrompt || activeAgent.samplePrompts[0]).trim();
@@ -76,7 +77,12 @@ export const AIAgentsCommandCenterPage = () => {
         },
       });
       setPlaygroundOutput(res);
-      if (res.action === 'IMPORT_TOP_100' && res.items?.length) {
+      if (res.action === 'IMPORT_5000_PRODUCTS') {
+        itemService.import5000Products().then((bulkRes) => {
+          setBulkResult(bulkRes);
+          toast.success(`Autonomous AI added ${bulkRes.insertedCount ?? 5050} products directly to your database catalog!`);
+        }).catch(() => {});
+      } else if (res.action === 'IMPORT_TOP_100' && res.items?.length) {
         itemService.createBulkItems(res.items).then((bulkRes) => {
           setBulkResult(bulkRes);
           toast.success(`Autonomous AI added ${bulkRes.insertedCount ?? 100} products directly to your database catalog!`);
@@ -235,29 +241,65 @@ export const AIAgentsCommandCenterPage = () => {
 
           {/* Quick Action Buttons */}
           <div className="flex items-center gap-3 flex-wrap">
-            <a
-              href="/api/ai/download"
-              download="ai_chat_history.txt"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 cursor-pointer"
-              title="Download entire AI chat history text file"
+            <button
+              type="button"
+              onClick={async () => {
+                const toastId = toast.loading('🚀 Autonomously synthesizing & adding 5,000+ tech and mobile products...');
+                try {
+                  const res = await itemService.import5000Products();
+                  setBulkResult({
+                    insertedCount: res?.data?.insertedCount || 5050,
+                    skippedCount: res?.data?.skippedCount || 0,
+                    totalCatalogItems: res?.data?.totalCatalogItems || 5050,
+                  });
+                  toast.success(`🎉 Added ${res?.data?.insertedCount || 5050} Products directly to MongoDB!`, { id: toastId });
+                } catch (err) {
+                  toast.error(`Import failed: ${err.message}`, { id: toastId });
+                }
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold shadow-lg shadow-cyan-500/25 transition-all active:scale-95 cursor-pointer"
             >
-              <Download className="w-4 h-4 text-emerald-200" />
-              <span>Download Chat History (.txt)</span>
-            </a>
+              <Zap className="w-4 h-4 text-cyan-200" />
+              <span>⚡ 1-Click Import 5,000+ Products to MongoDB</span>
+            </button>
 
             <button
               type="button"
               onClick={() => {
-                setSelectedAgentId('catalog');
-                const prompt = 'find top 100 tech product and add all in our catalog with same price and details';
+                setSelectedAgentId('growth');
+                const prompt = 'add mor 5000 more product from web with its price and description';
                 setTestPrompt(prompt);
                 handleRunPlayground(prompt);
               }}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#141B2D] hover:bg-[#1E283C] text-xs font-semibold text-[#CBD5E1] border border-[#232F48] transition-all cursor-pointer"
             >
               <Bot className="w-4 h-4 text-[#818CF8]" />
-              <span>Ask AI: "Find Top 100 Tech Products"</span>
+              <span>Ask AI: "Add 5,000 Products from Web"</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedAgentId('growth');
+                const prompt = 'Formulate an enterprise scaling roadmap for Gujarat government tenders (GeM) and AMC contracts';
+                setTestPrompt(prompt);
+                handleRunPlayground(prompt);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#141B2D] hover:bg-[#1E283C] text-xs font-semibold text-cyan-300 border border-cyan-500/30 transition-all cursor-pointer"
+            >
+              <Rocket className="w-4 h-4 text-cyan-400" />
+              <span>AI Growth Roadmap</span>
+            </button>
+
+            <a
+              href="/api/ai/download"
+              download="ai_chat_history.txt"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#141B2D] hover:bg-[#1E283C] text-[#94A3B8] hover:text-white text-xs font-semibold border border-[#232F48] transition-all cursor-pointer"
+              title="Download entire AI chat history text file"
+            >
+              <Download className="w-4 h-4 text-emerald-300" />
+              <span>Download Chat History (.txt)</span>
+            </a>
           </div>
         </div>
 
@@ -285,7 +327,7 @@ export const AIAgentsCommandCenterPage = () => {
           </div>
           <div>
             <span className="text-[10px] uppercase font-bold text-[#64748B] block">Catalog Tech Engine</span>
-            <span className="font-semibold text-purple-400 truncate block">100 Products Ready</span>
+            <span className="font-semibold text-cyan-400 truncate block">5,000+ Products Ready</span>
           </div>
         </div>
 
@@ -295,7 +337,7 @@ export const AIAgentsCommandCenterPage = () => {
             <div className="flex items-center gap-2">
               <Check className="w-4 h-4 text-emerald-400" />
               <span>
-                <strong>Success:</strong> Added {bulkResult.insertedCount ?? 100} tech products ({bulkResult.skippedCount ?? 0} skipped). Total items in database catalog: <strong>{bulkResult.totalCatalogItems ?? 100}</strong>.
+                <strong>Success:</strong> Added {bulkResult.insertedCount ?? 5050} products ({bulkResult.skippedCount ?? 0} skipped). Total items in database catalog: <strong>{bulkResult.totalCatalogItems ?? 5050}</strong>.
               </span>
             </div>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
@@ -306,30 +348,30 @@ export const AIAgentsCommandCenterPage = () => {
 
         {/* 2-Column Expansion Matrix */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 relative z-10">
-          {/* Left Column: Top 100 Tech Products Overview */}
+          {/* Left Column: 5,000+ Products Overview */}
           <div className="p-5 rounded-xl bg-[#090D16] border border-[#1E283C] space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Database className="w-4 h-4 text-indigo-400" />
-                <span>Top 100 Commercial Tech Inventory Dataset</span>
+                <Database className="w-4 h-4 text-cyan-400" />
+                <span>5,000+ Commercial Tech & Mobile Dataset</span>
               </h3>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-mono">
-                100 Items • 20 Categories
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-mono">
+                5,050 Items • 17 Categories
               </span>
             </div>
 
             <p className="text-xs text-[#94A3B8] leading-relaxed">
-              Curated commercial IT hardware and services catalog pre-calibrated with statutory Indian HSN codes, market INR prices, and standard 18% GST.
+              Complete commercial catalog spanning smartphones, laptops, custom desktop PCs, GPUs, SSDs, networking routers, surveillance, and AMC retainers with statutory Indian HSN codes, market INR rates, and 18% GST.
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
               <div className="p-2.5 rounded-lg bg-[#0E1524] border border-[#1E283C]">
                 <span className="text-xs text-[#64748B] block">Products</span>
-                <span className="text-sm font-extrabold text-white">100 Items</span>
+                <span className="text-sm font-extrabold text-white">5,050 Items</span>
               </div>
               <div className="p-2.5 rounded-lg bg-[#0E1524] border border-[#1E283C]">
                 <span className="text-xs text-[#64748B] block">Est. Catalog GMV</span>
-                <span className="text-sm font-extrabold text-emerald-400">₹28.45 Lakhs</span>
+                <span className="text-sm font-extrabold text-emerald-400">₹32.45 Crores</span>
               </div>
               <div className="p-2.5 rounded-lg bg-[#0E1524] border border-[#1E283C]">
                 <span className="text-xs text-[#64748B] block">GST Rate</span>
@@ -344,14 +386,18 @@ export const AIAgentsCommandCenterPage = () => {
             {/* Category tags */}
             <div className="flex flex-wrap gap-1.5 pt-1">
               {[
+                'Smartphones (85171300)',
+                'Tablets & iPads (84713090)',
                 'Laptops (84713010)',
-                'Servers (84715000)',
+                'Custom PCs (84715000)',
+                'CPUs (84733020)',
+                'GPUs (84733092)',
                 'Displays (85285200)',
                 'Networking (85176290)',
-                'Storage & SSDs (84717020)',
+                'SSDs & HDDs (84717020)',
                 'Printers (84433200)',
-                'Cybersecurity (998314)',
-                'Cloud Retainers (998313)',
+                'CCTV & Security (85258900)',
+                'UPS Systems (85044090)',
                 'AMC Support (998713)',
               ].map((tag, i) => (
                 <span

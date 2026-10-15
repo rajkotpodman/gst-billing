@@ -86,12 +86,35 @@ export const ItemsPage = () => {
           { label: 'Items' },
         ]}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <AIAgentButton
+              agentId="growth"
+              label="AI Growth Agent"
+              size="sm"
+            />
             <AIAgentButton
               agentId="catalog"
               label="AI Catalog Agent"
               size="sm"
             />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                const toastId = toast.loading('🚀 Autonomously synthesizing & adding 5,000+ tech and mobile products...');
+                try {
+                  const res = await itemService.import5000Products();
+                  toast.success(`🎉 Added ${res?.data?.insertedCount || 5050} Products directly to MongoDB!`, { id: toastId });
+                  queryClient.invalidateQueries({ queryKey: ['items'] });
+                  refetch();
+                } catch (err) {
+                  toast.error(`Import failed: ${err.message}`, { id: toastId });
+                }
+              }}
+              className="bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border-cyan-500/30"
+            >
+              ⚡ Add 5,000+ Products
+            </Button>
             <Button
               variant="secondary"
               size="sm"

@@ -114,6 +114,46 @@ export const createBulkItems = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Bulk import 5,000+ curated commercial tech & mobile products
+ */
+export const import5000Products = asyncHandler(async (req, res) => {
+  const shopId = req.user.shopId;
+  const { generate5000Products } = await import('../data/products5000Catalog.js');
+  const items = generate5000Products();
+
+  // Fetch existing item names to prevent duplicates
+  const existing = await Item.find({ shopId }, 'name');
+  const existingNames = new Set(existing.map((i) => i.name.toLowerCase().trim()));
+
+  const newItemsToInsert = items
+    .filter((item) => item.name && item.name.trim() && !existingNames.has(item.name.toLowerCase().trim()))
+    .map((item) => ({
+      shopId,
+      name: item.name.trim(),
+      hsnCode: item.hsnCode ? item.hsnCode.trim() : '84713010',
+      price: Math.max(0, Number(item.price) || 0),
+      gstPercent: item.gstPercent !== undefined ? Number(item.gstPercent) : 18,
+      description: item.description ? item.description.trim() : '',
+    }));
+
+  if (newItemsToInsert.length > 0) {
+    const batchSize = 1000;
+    for (let i = 0; i < newItemsToInsert.length; i += batchSize) {
+      const batch = newItemsToInsert.slice(i, i + batchSize);
+      await Item.insertMany(batch, { ordered: false });
+    }
+  }
+
+  const totalCount = await Item.countDocuments({ shopId });
+
+  return apiResponse.created(res, `Successfully imported ${newItemsToInsert.length} products to catalog`, {
+    insertedCount: newItemsToInsert.length,
+    skippedCount: items.length - newItemsToInsert.length,
+    totalCatalogItems: totalCount,
+  });
+});
+
+/**
  * Update catalog item
  */
 export const updateItem = asyncHandler(async (req, res) => {
@@ -154,6 +194,7 @@ export default {
   getItemById,
   createItem,
   createBulkItems,
+  import5000Products,
   updateItem,
   deleteItem,
 };

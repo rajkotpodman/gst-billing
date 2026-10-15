@@ -10,6 +10,7 @@ router.use(requireAuth);
 router.get('/', itemController.getItems);
 router.post('/', requireRole('OWNER', 'ADMIN'), itemController.createItem);
 router.post('/bulk', requireRole('OWNER', 'ADMIN'), itemController.createBulkItems);
+router.post('/import-5000', requireRole('OWNER', 'ADMIN'), itemController.import5000Products);
 router.get('/:id', itemController.getItemById);
 router.put('/:id', requireRole('OWNER', 'ADMIN'), itemController.updateItem);
 router.delete('/:id', requireRole('OWNER', 'ADMIN'), itemController.deleteItem);

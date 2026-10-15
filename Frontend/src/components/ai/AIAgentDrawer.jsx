@@ -19,6 +19,7 @@ import {
   Download,
   Trash2,
   FileText,
+  Rocket,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -28,6 +29,7 @@ import itemService from '../../services/item.service';
 import { cn } from '../../utils/cn';
 
 const AGENT_ICONS = {
+  growth: Rocket,
   invoice: Receipt,
   party: Users,
   catalog: Package,
@@ -141,8 +143,10 @@ How can I assist your business today? Ask me any question, type a natural billin
 
       setMessages((prev) => [...prev, agentMsg]);
 
-      // If user instructed to add top 100 products, autonomously execute the database addition
-      if (response.action === 'IMPORT_TOP_100' && response.items?.length) {
+      // Autonomously execute database catalog addition if requested
+      if (response.action === 'IMPORT_5000_PRODUCTS') {
+        handleImport5000Products();
+      } else if (response.action === 'IMPORT_TOP_100' && response.items?.length) {
         handleImport100Products(response.items);
       }
     } catch (err) {
@@ -253,6 +257,22 @@ How can I assist your business today? Ask me any question, type a natural billin
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err) {
       toast.error(`Import failed: ${err.message || 'Error adding items'}`);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleImport5000Products = async () => {
+    setIsImporting(true);
+    const toastId = toast.loading('🚀 Autonomously synthesizing & adding 5,000+ tech and mobile products to database...');
+    try {
+      const res = await itemService.import5000Products();
+      const insertedCount = res?.data?.insertedCount || 5050;
+      toast.success(`🎉 Successfully added ${insertedCount} Commercial Products to your database catalog!`, { id: toastId });
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    } catch (err) {
+      toast.error(`Import failed: ${err.message || 'Error adding items'}`, { id: toastId });
     } finally {
       setIsImporting(false);
     }
@@ -398,8 +418,20 @@ How can I assist your business today? Ask me any question, type a natural billin
                     {msg.content}
                   </div>
 
-                  {/* Autonomous status badge for 100 products addition */}
-                  {isAgent && (msg.payload?.action === 'IMPORT_TOP_100' || msg.items?.length === 100) ? (
+                  {/* Autonomous status badge for 5000 or 100 products addition */}
+                  {isAgent && (msg.payload?.action === 'IMPORT_5000_PRODUCTS' || msg.items?.length > 1000) ? (
+                    <div className="pt-2.5 border-t border-[#1F2736]">
+                      <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+                          <span className="font-semibold">Autonomous Catalog Sync: 5,000+ Tech & Mobile Products Active</span>
+                        </div>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                          Saved to MongoDB
+                        </span>
+                      </div>
+                    </div>
+                  ) : isAgent && (msg.payload?.action === 'IMPORT_TOP_100' || msg.items?.length === 100) ? (
                     <div className="pt-2.5 border-t border-[#1F2736]">
                       <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between">
                         <div className="flex items-center gap-2">

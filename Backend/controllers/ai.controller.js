@@ -104,8 +104,24 @@ export const downloadChatFile = async (_req, res) => {
   }
 };
 
+/**
+ * Intelligent prompt understanding using Gemini API
+ */
+export const understandPrompt = async (req, res) => {
+  try {
+    const { prompt, systemPrompt, apiKey, model } = req.body;
+    const { understandUserPrompt } = await import('../services/gemini.service.js');
+    const result = await understandUserPrompt({ prompt, systemPrompt, apiKey, model });
+
+    return sendSuccess(res, 200, 'Prompt processed', result);
+  } catch (error) {
+    return sendError(res, 500, 'Failed to process prompt with Gemini API', error.message);
+  }
+};
+
 export default {
   saveChat,
   getChatHistory,
   downloadChatFile,
+  understandPrompt,
 };

@@ -44,6 +44,9 @@ const env = {
 
   // Invoice
   INVOICE_PREFIX: process.env.INVOICE_PREFIX || 'INV',
+
+  // Gemini AI
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
 };
 
 /**
