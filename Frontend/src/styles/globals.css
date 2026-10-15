@@ -147,3 +147,57 @@ textarea {
   background-color: rgba(99, 102, 241, 0.25);
   color: var(--text-primary);
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Pro Bottom Action Buttons (Direct Links)
+   ───────────────────────────────────────────────────────────── */
+.pro-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+
+.pro-btn:active {
+  transform: scale(0.96);
+}
+
+.pro-btn.btn-buy-pro {
+  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+  color: #ffffff;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.pro-btn.btn-buy-pro:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+}
+
+.pro-btn.btn-donate {
+  background: linear-gradient(135deg, #9333ea 0%, #6366f1 100%);
+  color: #ffffff;
+  border-color: rgba(147, 51, 234, 0.4);
+}
+.pro-btn.btn-donate:hover {
+  background: linear-gradient(135deg, #a855f7 0%, #818cf8 100%);
+  box-shadow: 0 0 12px rgba(147, 51, 234, 0.4);
+}
+
+.pro-btn.btn-store {
+  background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+  color: #ffffff;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.pro-btn.btn-store:hover {
+  background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}

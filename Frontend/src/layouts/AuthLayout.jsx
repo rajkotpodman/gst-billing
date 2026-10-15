@@ -259,6 +259,36 @@ export const AuthLayout = () => {
         <div className="w-full flex items-center justify-center my-auto py-4">
           <Outlet />
         </div>
+
+        {/* Bottom Pro Buttons Bar */}
+        <div className="w-full py-3 px-4 flex items-center justify-center gap-2 sm:gap-3 flex-wrap border-t border-[#1E2538] dark:border-[#1E2538] light:border-[#E2E8F0]">
+          <button
+            type="button"
+            className="pro-btn btn-buy-pro"
+            onClick={() => window.open('https://wa.me/919898048483', '_blank')}
+          >
+            ⚡ BUY NOW PRO (APPOINTMENT)
+          </button>
+          <button
+            type="button"
+            className="pro-btn btn-donate"
+            onClick={() =>
+              window.open(
+                'https://docs.google.com/forms/d/e/1FAIpQLScJ7WjuxEXqdoSlUtxN7NQ8UeKpbEAeA9iIO-IXOmBmYzlLHQ/viewform?usp=sharing&ouid=116676179363878319046',
+                '_blank'
+              )
+            }
+          >
+            🪙 DONATION SYSTEM
+          </button>
+          <button
+            type="button"
+            className="pro-btn btn-store"
+            onClick={() => window.open('https://wa.me/c/919898048483', '_blank')}
+          >
+            🛒 OFFICIAL DIGITAL STORE
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -46,6 +46,36 @@ export const AppShell = ({ user, shop, onLogout }) => {
             <Outlet />
           </div>
         </main>
+
+        {/* 4. Bottom Pro Buttons Bar */}
+        <footer className="sticky bottom-0 z-30 w-full py-2 px-3 sm:px-6 bg-[#080B11]/90 backdrop-blur-md border-t border-[#1F2736]/70 flex items-center justify-center gap-2 sm:gap-3 flex-wrap shadow-lg">
+          <button
+            type="button"
+            className="pro-btn btn-buy-pro"
+            onClick={() => window.open('https://wa.me/919898048483', '_blank')}
+          >
+            ⚡ BUY NOW PRO (APPOINTMENT)
+          </button>
+          <button
+            type="button"
+            className="pro-btn btn-donate"
+            onClick={() =>
+              window.open(
+                'https://docs.google.com/forms/d/e/1FAIpQLScJ7WjuxEXqdoSlUtxN7NQ8UeKpbEAeA9iIO-IXOmBmYzlLHQ/viewform?usp=sharing&ouid=116676179363878319046',
+                '_blank'
+              )
+            }
+          >
+            🪙 DONATION SYSTEM
+          </button>
+          <button
+            type="button"
+            className="pro-btn btn-store"
+            onClick={() => window.open('https://wa.me/c/919898048483', '_blank')}
+          >
+            🛒 OFFICIAL DIGITAL STORE
+          </button>
+        </footer>
       </div>
     </div>
   );
