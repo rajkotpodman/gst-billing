@@ -19,8 +19,17 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/gst-billin
 export async function seedDatabase(disconnect = true) {
   if (mongoose.connection.readyState !== 1) {
     console.log(' Connecting to MongoDB at:', MONGO_URI);
-    await mongoose.connect(MONGO_URI);
-    console.log(' Connected to database successfully.');
+    try {
+      await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 2000 });
+      console.log(' Connected to database successfully.');
+    } catch (connErr) {
+      console.log(' Local MongoDB service not active. Initializing In-Memory MongoDB for seeding...');
+      const { MongoMemoryServer } = await import('mongodb-memory-server');
+      const memServer = await MongoMemoryServer.create({ instance: { dbName: 'gst-billing' } });
+      const uri = memServer.getUri();
+      await mongoose.connect(uri);
+      console.log(' Connected to In-Memory MongoDB:', uri);
+    }
   }
 
   // Clean collections
