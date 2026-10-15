@@ -121,7 +121,7 @@ The system utilizes six structured collections designed with Mongoose schemas:
 
 ### 3.1 `Shop` Collection
 Represents the registered business enterprise:
-- `businessName`: String (e.g., `Apex Tech Solutions Private Limited`)
+- `businessName`: String (e.g., `Aayush Mobile and Computer`)
 - `ownerName`: String (e.g., `Jigsi Karia`)
 - `address`: String (Street, building, city)
 - `state`: String (e.g., `Gujarat`)

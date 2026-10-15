@@ -189,7 +189,7 @@ Your Role: ${agent.role}.
 Description: ${agent.description}.
 
 CURRENT CONTEXT & SHOP DETAILS:
-- Shop Business Name: ${contextData.businessName || 'Apex Tech Solutions Private Limited'}
+- Shop Business Name: ${contextData.businessName || 'Aayush Mobile and Computer'}
 - Seller State: ${contextData.sellerState || 'Gujarat'} (State Code 24)
 - Customer State: ${contextData.customerState || contextData.sellerState || 'Gujarat'}
 - Applicable GST Type: ${contextData.intraState === false ? 'Inter-State (IGST applicable)' : 'Intra-State (CGST + SGST applicable)'}
@@ -246,7 +246,7 @@ FORMATTING REQUIREMENTS:
           agentName: agent.name,
           prompt,
           response: result.text,
-          businessName: contextData.businessName || 'Apex Tech Solutions Private Limited',
+          businessName: contextData.businessName || 'Aayush Mobile and Computer',
           gstin: contextData.gstin || '24ABCDE1234F1Z5',
         }),
       }).catch(() => {});
@@ -341,12 +341,12 @@ FORMATTING REQUIREMENTS:
 
   /**
    * Built-in Intelligent Agent Engine
-   * Dynamic, conversational, GST-compliant responses with full memory of Apex Tech Solutions & Jigsi Karia
+   * Dynamic, conversational, GST-compliant responses with full memory of Aayush Mobile and Computer & Jigsi Karia
    */
   fallbackEngine(agentId, prompt, contextData, businessAimInstruction, notice = '') {
     const trimmed = prompt.trim();
     const lower = trimmed.toLowerCase();
-    const businessName = contextData.businessName || 'Apex Tech Solutions Private Limited';
+    const businessName = contextData.businessName || 'Aayush Mobile and Computer';
     const ownerName = contextData.ownerName || 'Jigsi Karia';
     const gstin = contextData.gstin || '24ABCDE1234F1Z5';
     const sellerState = contextData.sellerState || 'Gujarat';
@@ -364,7 +364,7 @@ FORMATTING REQUIREMENTS:
       ) || ['hi', 'hello', 'hey', 'help', 'kem cho'].includes(lower);
 
     if (isGreeting) {
-      responseText = `👋 **Hello! Welcome to Apex Tech Solutions AI Assistant.**
+      responseText = `👋 **Hello! Welcome to Aayush Mobile and Computer AI Assistant.**
 
 I have active memory of your business profile:
 - **Enterprise**: **${businessName}**

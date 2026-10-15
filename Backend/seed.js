@@ -46,9 +46,9 @@ export async function seedDatabase(disconnect = true) {
   const passwordHash = await bcrypt.hash('Jigsi@karia', 12);
 
   // 1. Create Shop
-  console.log(' Creating Primary Shop: Apex Tech Solutions Private Limited...');
+  console.log(' Creating Primary Shop: Aayush Mobile and Computer...');
   const shop = new Shop({
-    businessName: 'Apex Tech Solutions Private Limited',
+    businessName: 'Aayush Mobile and Computer',
     ownerName: 'Jigsi Karia',
     address: '402, Titanium City Centre, Prahlad Nagar, Ahmedabad',
     state: 'Gujarat',
@@ -353,7 +353,7 @@ export async function seedDatabase(disconnect = true) {
   console.log('\n  ═══════════════════════════════════════════════════════════');
   console.log('   DATABASE SEEDED SUCCESSFULLY!');
   console.log('  ═══════════════════════════════════════════════════════════');
-  console.log('  Shop:     Apex Tech Solutions Private Limited (Ahmedabad, Gujarat)');
+  console.log('  Shop:     Aayush Mobile and Computer (Ahmedabad, Gujarat)');
   console.log('  Users:    4 Users seeded');
   console.log('            - OWNER: Jigsi_karia@jigsikaria.com | Jigsi@karia');
   console.log('            - ADMIN: karia_jigsi@jigsikaria.com | Jigsi@karia');

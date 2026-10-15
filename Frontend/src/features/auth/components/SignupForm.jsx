@@ -208,7 +208,7 @@ export const SignupForm = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Enterprise / Shop Name *"
-              placeholder="Apex Tech Solutions"
+              placeholder="Aayush Mobile and Computer"
               leftIcon={Building2}
               error={errors.businessName?.message}
               {...register('businessName')}

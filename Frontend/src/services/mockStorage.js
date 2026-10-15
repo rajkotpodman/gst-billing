@@ -259,7 +259,7 @@ const SEED_USERS = [
 ];
 
 const SEED_SHOP = {
-  name: 'Apex Tech Solutions Private Limited',
+  name: 'Aayush Mobile and Computer',
   ownerName: 'Jigsi Karia',
   address: '402, Titanium City Centre, Prahlad Nagar, Ahmedabad',
   state: 'Gujarat',

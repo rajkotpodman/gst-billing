@@ -26,7 +26,7 @@ export const saveChat = async (req, res) => {
     const { agentId, agentName, prompt, response, businessName, gstin } = req.body;
     const userEmail = req.user?.email || 'Jigsi_karia@jigsikaria.com';
     const userName = req.user?.name || 'Jigsi Karia';
-    const shopName = businessName || req.user?.shopId?.businessName || 'Apex Tech Solutions Private Limited';
+    const shopName = businessName || req.user?.shopId?.businessName || 'Aayush Mobile and Computer';
     const shopGstin = gstin || req.user?.shopId?.gstin || '24ABCDE1234F1Z5';
 
     const timestamp = new Date().toLocaleString('en-IN', {
@@ -79,7 +79,7 @@ export const getChatHistory = async (_req, res) => {
     if (fs.existsSync(rootChatFilePath)) {
       content = fs.readFileSync(rootChatFilePath, 'utf8');
     } else {
-      content = `# AI Chat History Log — Apex Tech Solutions Private Limited\n# Created: ${new Date().toISOString()}\n`;
+      content = `# AI Chat History Log — Aayush Mobile and Computer\n# Created: ${new Date().toISOString()}\n`;
       fs.writeFileSync(rootChatFilePath, content, 'utf8');
     }
 
@@ -94,7 +94,7 @@ export const downloadChatFile = async (_req, res) => {
     if (!fs.existsSync(rootChatFilePath)) {
       fs.writeFileSync(
         rootChatFilePath,
-        `# AI Chat History Log — Apex Tech Solutions Private Limited\n# Initialized: ${new Date().toISOString()}\n`,
+        `# AI Chat History Log — Aayush Mobile and Computer\n# Initialized: ${new Date().toISOString()}\n`,
         'utf8'
       );
     }

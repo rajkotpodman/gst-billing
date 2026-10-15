@@ -80,7 +80,7 @@ export const AIAgentDrawer = () => {
           role: 'agent',
           agentId: activeAgentId,
           content: `👋 **Greetings! I am the ${currentAgent.name}**.
-I am actively calibrated with full memory of **Apex Tech Solutions Private Limited** (Jigsi Karia | Gujarat | GSTIN: \`24ABCDE1234F1Z5\`).
+I am actively calibrated with full memory of **Aayush Mobile and Computer** (Jigsi Karia | Gujarat | GSTIN: \`24ABCDE1234F1Z5\`).
 Active Aim: *"${activeAimObj.title}"*.
 
 How can I assist your business today? Ask me any question, type a natural billing prompt, or ask to formulate and add products to your catalog:`,
@@ -164,7 +164,7 @@ How can I assist your business today? Ask me any question, type a natural billin
   const handleDownloadChatHistory = () => {
     const lines = [
       '================================================================================',
-      'AI CHAT & AUDIT LOG — APEX TECH SOLUTIONS PRIVATE LIMITED',
+      'AI CHAT & AUDIT LOG — AAYUSH MOBILE AND COMPUTER',
       'Managing Director: Jigsi Karia (Jigsi_karia@jigsikaria.com)',
       'GSTIN: 24ABCDE1234F1Z5 | Jurisdiction: Ahmedabad, Gujarat (Code 24)',
       `Exported Timestamp: ${new Date().toLocaleString('en-IN')}`,

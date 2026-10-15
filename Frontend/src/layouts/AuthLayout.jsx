@@ -149,7 +149,7 @@ export const AuthLayout = () => {
               <div className="grid grid-cols-2 gap-3 text-[11px]">
                 <div>
                   <span className="text-[9px] font-medium text-[#64748B] uppercase tracking-wider block">SELLER</span>
-                  <span className="font-semibold text-[#F8FAFC] dark:text-[#F8FAFC] light:text-[#0F172A] block truncate">Apex Tech Solutions</span>
+                  <span className="font-semibold text-[#F8FAFC] dark:text-[#F8FAFC] light:text-[#0F172A] block truncate">Aayush Mobile and Computer</span>
                   <span className="text-[10px] text-[#94A3B8] font-mono block">GSTIN: 24ABCDE1234F1Z5</span>
                 </div>
                 <div>

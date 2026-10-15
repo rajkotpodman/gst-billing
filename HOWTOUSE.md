@@ -20,7 +20,7 @@
 
 ## 🤖 NEW FEATURE: Autonomous AI Business Development & Top 100 Products Catalog Auto-Importer
 
-Our system is equipped with an **Autonomous Business Development Multi-Agent Mesh** with persistent memory of your enterprise profile (**Apex Tech Solutions Private Limited**, Managing Director: **Jigsi Karia**, Ahmedabad, Gujarat, GSTIN: `24ABCDE1234F1Z5`).
+Our system is equipped with an **Autonomous Business Development Multi-Agent Mesh** with persistent memory of your enterprise profile (**Aayush Mobile and Computer**, Managing Director: **Jigsi Karia**, Ahmedabad, Gujarat, GSTIN: `24ABCDE1234F1Z5`).
 
 ### 1. How to Import the Top 100 Tech Products in 1 Click
 
@@ -51,7 +51,7 @@ You can populate your entire IT hardware inventory catalog without typing a sing
 
 ## 📈 Strategic Business Expansion Advisory
 
-The AI automatically analyzes your business profile and suggests 4 growth pathways for **Apex Tech Solutions**:
+The AI automatically analyzes your business profile and suggests 4 growth pathways for **Aayush Mobile and Computer**:
 
 1. **Government e-Marketplace (GeM) Tenders in Gujarat**:
    - Register GSTIN `24ABCDE1234F1Z5` on GeM for public institutional supply of desktops, servers, and networking gear to Gujarat government departments.

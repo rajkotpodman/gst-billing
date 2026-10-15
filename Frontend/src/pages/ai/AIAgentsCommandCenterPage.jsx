@@ -70,7 +70,7 @@ export const AIAgentsCommandCenterPage = () => {
         agentId: selectedAgentId,
         prompt,
         contextData: {
-          businessName: shop?.businessName || 'Apex Tech Solutions',
+          businessName: shop?.businessName || 'Aayush Mobile and Computer',
           sellerState: shop?.state || 'Gujarat',
           customerState: 'Gujarat',
         },
@@ -265,7 +265,7 @@ export const AIAgentsCommandCenterPage = () => {
         <div className="p-4 rounded-xl bg-[#090D16] border border-[#1E283C] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs relative z-10">
           <div>
             <span className="text-[10px] uppercase font-bold text-[#64748B] block">Enterprise Name</span>
-            <span className="font-semibold text-white truncate block">{shop?.businessName || 'Apex Tech Solutions'}</span>
+            <span className="font-semibold text-white truncate block">{shop?.businessName || 'Aayush Mobile and Computer'}</span>
           </div>
           <div>
             <span className="text-[10px] uppercase font-bold text-[#64748B] block">Managing Director</span>
@@ -377,7 +377,7 @@ export const AIAgentsCommandCenterPage = () => {
             </div>
 
             <p className="text-xs text-[#94A3B8] leading-relaxed">
-              Based on Apex Tech Solutions' profile in Gujarat, our Multi-Agent mesh recommends 4 high-margin expansion pathways:
+              Based on Aayush Mobile and Computer's profile in Gujarat, our Multi-Agent mesh recommends 4 high-margin expansion pathways:
             </p>
 
             <div className="space-y-2.5">
@@ -474,7 +474,7 @@ export const AIAgentsCommandCenterPage = () => {
                     type="button"
                     onClick={() =>
                       openAgent(agent.id, {
-                        businessName: shop?.businessName || 'Apex Tech Solutions',
+                        businessName: shop?.businessName || 'Aayush Mobile and Computer',
                         sellerState: shop?.state || 'Gujarat',
                       })
                     }

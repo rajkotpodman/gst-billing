@@ -175,7 +175,7 @@ export const BillDetailsPage = () => {
               Billed By (Supplier)
             </span>
             <h2 className="text-base font-bold text-[#F8FAFC] print:text-black">
-              {shop.businessName || shop.name || 'Apex Tech Solutions'}
+              {shop.businessName || shop.name || 'Aayush Mobile and Computer'}
             </h2>
             <div className="text-xs text-[#94A3B8] space-y-1 leading-relaxed">
               {shop.address && <p>{shop.address}</p>}
