@@ -149,7 +149,7 @@ export const AISettingsModal = () => {
                   rows={3}
                   value={customAim}
                   onChange={(e) => setCustomAim(e.target.value)}
-                  placeholder="e.g. We are a wholesale electronics distributor targeting 15% net profit margin, zero delayed payments beyond 10 days, and strict adherence to Arunachal Pradesh GST invoicing rules."
+                  placeholder="e.g. We are a wholesale electronics distributor targeting 15% net profit margin, zero delayed payments beyond 10 days, and strict adherence to Gujarat GST invoicing rules."
                   className="w-full p-2.5 rounded-lg bg-[#080B11] border border-[#1F2736] text-xs text-white placeholder-[#64748B] focus:outline-none focus:border-[#6366F1]"
                 />
               </div>

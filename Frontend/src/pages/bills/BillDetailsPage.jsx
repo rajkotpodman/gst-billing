@@ -179,7 +179,7 @@ export const BillDetailsPage = () => {
             </h2>
             <div className="text-xs text-[#94A3B8] space-y-1 leading-relaxed">
               {shop.address && <p>{shop.address}</p>}
-              <p>State: <strong className="text-[#F8FAFC] print:text-black">{shop.state || 'Arunachal Pradesh'}</strong></p>
+              <p>State: <strong className="text-[#F8FAFC] print:text-black">{shop.state || 'Gujarat'}</strong></p>
               {shop.gstin && (
                 <p className="font-mono text-xs">
                   GSTIN: <span className="font-bold text-[#F8FAFC] print:text-black">{shop.gstin}</span>

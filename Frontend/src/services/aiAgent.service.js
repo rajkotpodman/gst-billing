@@ -186,9 +186,9 @@ Your Role: ${agent.role}.
 Description: ${agent.description}.
 
 CURRENT CONTEXT & SHOP DETAILS:
-- Shop Business Name: ${contextData.businessName || 'Apex Tech Solutions Pvt Ltd'}
-- Seller State: ${contextData.sellerState || 'Arunachal Pradesh'} (State Code 12)
-- Customer State: ${contextData.customerState || contextData.sellerState || 'Arunachal Pradesh'}
+- Shop Business Name: ${contextData.businessName || 'Apex Tech Solutions Private Limited'}
+- Seller State: ${contextData.sellerState || 'Gujarat'} (State Code 24)
+- Customer State: ${contextData.customerState || contextData.sellerState || 'Gujarat'}
 - Applicable GST Type: ${contextData.intraState === false ? 'Inter-State (IGST applicable)' : 'Intra-State (CGST + SGST applicable)'}
 
 CRITICAL DIRECTIVE - MERCHANT BUSINESS AIM:
@@ -323,7 +323,7 @@ FORMATTING REQUIREMENTS:
    */
   fallbackEngine(agentId, prompt, contextData, businessAimInstruction, notice = '') {
     const lower = prompt.toLowerCase();
-    const sellerState = contextData.sellerState || 'Arunachal Pradesh';
+    const sellerState = contextData.sellerState || 'Gujarat';
     const customerState = contextData.customerState || sellerState;
     const isIntraState = sellerState.toLowerCase() === customerState.toLowerCase();
     const taxType = isIntraState ? 'CGST (9%) + SGST (9%)' : 'IGST (18%)';

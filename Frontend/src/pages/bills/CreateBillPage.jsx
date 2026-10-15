@@ -108,8 +108,8 @@ export const CreateBillPage = () => {
           size="md"
           contextData={{
             businessName: shop?.businessName,
-            sellerState: shop?.state || 'Arunachal Pradesh',
-            customerState: selectedParty?.state || shop?.state || 'Arunachal Pradesh',
+            sellerState: shop?.state || 'Gujarat',
+            customerState: selectedParty?.state || shop?.state || 'Gujarat',
             intraState: summary.intraState,
             currentItems: items,
           }}

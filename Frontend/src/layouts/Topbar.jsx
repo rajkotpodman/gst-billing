@@ -53,8 +53,8 @@ export const Topbar = ({ onMenuClick, user, shop, onLogout }) => {
   };
 
   const title = getPageTitle(location.pathname);
-  const businessName = shop?.name || shop?.businessName || 'IMS';
-  const shopState = shop?.state || 'Arunachal Pradesh';
+  const businessName = shop?.name || shop?.businessName || 'Apex Tech Solutions';
+  const shopState = shop?.state || 'Gujarat';
 
   // Format today's date nicely for the topbar date selector
   const todayDateStr = new Date().toLocaleDateString('en-GB', {

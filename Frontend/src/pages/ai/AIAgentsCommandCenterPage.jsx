@@ -59,7 +59,7 @@ export const AIAgentsCommandCenterPage = () => {
         prompt,
         contextData: {
           businessName: shop?.businessName || 'Apex Tech Solutions',
-          sellerState: shop?.state || 'Arunachal Pradesh',
+          sellerState: shop?.state || 'Gujarat',
           customerState: 'Gujarat',
         },
       });
@@ -253,7 +253,7 @@ export const AIAgentsCommandCenterPage = () => {
                     onClick={() =>
                       openAgent(agent.id, {
                         businessName: shop?.businessName || 'Apex Tech Solutions',
-                        sellerState: shop?.state || 'Arunachal Pradesh',
+                        sellerState: shop?.state || 'Gujarat',
                       })
                     }
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer"
