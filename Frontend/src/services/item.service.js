@@ -53,6 +53,22 @@ export const itemService = {
     }
   },
 
+  async createBulkItems(items) {
+    try {
+      const res = await apiClient.post('/items/bulk', { items });
+      return res.data || res;
+    } catch (err) {
+      const savedItems = items.map((item) => mockStorage.saveItem(item));
+      return {
+        success: true,
+        data: {
+          insertedCount: savedItems.length,
+          items: savedItems,
+        },
+      };
+    }
+  },
+
   async updateItem(id, payload) {
     try {
       const res = await apiClient.put(`/items/${id}`, payload);

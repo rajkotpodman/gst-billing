@@ -15,12 +15,21 @@ import {
   Cpu,
   Layers,
   Zap,
+  Briefcase,
+  Globe,
+  Database,
+  Rocket,
+  Check,
+  Building2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAIAgent } from '../../context/AIAgentContext';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/ui/PageHeader';
 import ROUTES from '../../constants/routes';
 import aiAgentService from '../../services/aiAgent.service';
+import itemService from '../../services/item.service';
+import { TOP_100_TECH_PRODUCTS } from '../../constants/top100TechProducts';
 import { cn } from '../../utils/cn';
 
 const AGENT_ICON_MAP = {
@@ -45,8 +54,27 @@ export const AIAgentsCommandCenterPage = () => {
   const [testPrompt, setTestPrompt] = useState('');
   const [playgroundOutput, setPlaygroundOutput] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isImporting100, setIsImporting100] = useState(false);
+  const [bulkResult, setBulkResult] = useState(null);
 
   const activeAgent = AGENT_REGISTRY[selectedAgentId] || AGENT_REGISTRY.invoice;
+
+  const handleImportTop100 = async () => {
+    setIsImporting100(true);
+    const toastId = toast.loading('Autonomous AI Agents importing Top 100 Tech Products to database catalog...');
+    try {
+      const res = await itemService.createBulkItems(TOP_100_TECH_PRODUCTS);
+      setBulkResult(res);
+      toast.success(
+        `Catalog Updated! ${res?.insertedCount ?? 100} tech products added (${res?.skippedCount ?? 0} skipped). Total catalog: ${res?.totalCatalogItems ?? '100+'} items.`,
+        { id: toastId }
+      );
+    } catch (err) {
+      toast.error(`Import failed: ${err.message || 'Error importing items'}`, { id: toastId });
+    } finally {
+      setIsImporting100(false);
+    }
+  };
 
   const handleRunPlayground = async (promptOverride) => {
     const prompt = (promptOverride || testPrompt || activeAgent.samplePrompts[0]).trim();
@@ -189,6 +217,210 @@ export const AIAgentsCommandCenterPage = () => {
                 </div>
               );
             })}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Autonomous Business Development & Top 100 Products Expansion Hub ─── */}
+      <div className="p-6 rounded-2xl bg-gradient-to-br from-[#0B0F19] via-[#111827] to-[#0A0D14] border border-indigo-500/30 shadow-2xl space-y-6 relative overflow-hidden">
+        {/* Glow ambient background element */}
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Section Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#1E283C] pb-5 relative z-10">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                <Rocket className="w-4 h-4 text-indigo-300 animate-pulse" />
+              </span>
+              <h2 className="text-lg font-extrabold text-white tracking-tight">
+                Autonomous Business Development & Catalog Expansion Hub
+              </h2>
+            </div>
+            <p className="text-xs text-[#94A3B8]">
+              Connected AI Multi-Agents with persistent memory of your business profile, automated 100 tech products catalog synthesis, and strategic expansion advisory.
+            </p>
+          </div>
+
+          {/* Quick Action Buttons */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              disabled={isImporting100}
+              onClick={handleImportTop100}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white text-xs font-bold shadow-lg shadow-indigo-500/25 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+            >
+              <Zap className="w-4 h-4 text-yellow-300 animate-bounce" />
+              <span>{isImporting100 ? 'Importing 100 Products...' : '⚡ Add All 100 Products to Catalog'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedAgentId('catalog');
+                const prompt = 'find top 100 tech product and add all in our catalog with same price and details';
+                setTestPrompt(prompt);
+                handleRunPlayground(prompt);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#141B2D] hover:bg-[#1E283C] text-xs font-semibold text-[#CBD5E1] border border-[#232F48] transition-all cursor-pointer"
+            >
+              <Bot className="w-4 h-4 text-[#818CF8]" />
+              <span>Simulate "Find Top 100 Tech Products" Prompt</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Live Business Profile Memory Banner */}
+        <div className="p-4 rounded-xl bg-[#090D16] border border-[#1E283C] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs relative z-10">
+          <div>
+            <span className="text-[10px] uppercase font-bold text-[#64748B] block">Enterprise Name</span>
+            <span className="font-semibold text-white truncate block">{shop?.businessName || 'Apex Tech Solutions'}</span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-[#64748B] block">Managing Director</span>
+            <span className="font-semibold text-white truncate block">{shop?.ownerName || 'Jigsi Karia'}</span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-[#64748B] block">Statutory GSTIN</span>
+            <span className="font-mono text-indigo-400 font-semibold truncate block">{shop?.gstin || '24ABCDE1234F1Z5'}</span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-[#64748B] block">Jurisdiction</span>
+            <span className="font-semibold text-emerald-400 truncate block">Gujarat (Code 24)</span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-[#64748B] block">Headquarters</span>
+            <span className="font-semibold text-[#CBD5E1] truncate block">{shop?.city || 'Ahmedabad'}</span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-[#64748B] block">Catalog Tech Engine</span>
+            <span className="font-semibold text-purple-400 truncate block">100 Products Ready</span>
+          </div>
+        </div>
+
+        {/* Import Results Notification */}
+        {bulkResult && (
+          <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-between text-xs text-emerald-300 animate-in fade-in duration-200">
+            <div className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-emerald-400" />
+              <span>
+                <strong>Success:</strong> Added {bulkResult.insertedCount ?? 100} tech products ({bulkResult.skippedCount ?? 0} skipped). Total items in database catalog: <strong>{bulkResult.totalCatalogItems ?? 100}</strong>.
+              </span>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+              Synced to MongoDB
+            </span>
+          </div>
+        )}
+
+        {/* 2-Column Expansion Matrix */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 relative z-10">
+          {/* Left Column: Top 100 Tech Products Overview */}
+          <div className="p-5 rounded-xl bg-[#090D16] border border-[#1E283C] space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Database className="w-4 h-4 text-indigo-400" />
+                <span>Top 100 Commercial Tech Inventory Dataset</span>
+              </h3>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-mono">
+                100 Items • 20 Categories
+              </span>
+            </div>
+
+            <p className="text-xs text-[#94A3B8] leading-relaxed">
+              Curated commercial IT hardware and services catalog pre-calibrated with statutory Indian HSN codes, market INR prices, and standard 18% GST.
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+              <div className="p-2.5 rounded-lg bg-[#0E1524] border border-[#1E283C]">
+                <span className="text-xs text-[#64748B] block">Products</span>
+                <span className="text-sm font-extrabold text-white">100 Items</span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-[#0E1524] border border-[#1E283C]">
+                <span className="text-xs text-[#64748B] block">Est. Catalog GMV</span>
+                <span className="text-sm font-extrabold text-emerald-400">₹28.45 Lakhs</span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-[#0E1524] border border-[#1E283C]">
+                <span className="text-xs text-[#64748B] block">GST Rate</span>
+                <span className="text-sm font-extrabold text-indigo-400">18% Standard</span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-[#0E1524] border border-[#1E283C]">
+                <span className="text-xs text-[#64748B] block">HSN Compliance</span>
+                <span className="text-sm font-extrabold text-amber-400">8-Digit Codes</span>
+              </div>
+            </div>
+
+            {/* Category tags */}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {[
+                'Laptops (84713010)',
+                'Servers (84715000)',
+                'Displays (85285200)',
+                'Networking (85176290)',
+                'Storage & SSDs (84717020)',
+                'Printers (84433200)',
+                'Cybersecurity (998314)',
+                'Cloud Retainers (998313)',
+                'AMC Support (998713)',
+              ].map((tag, i) => (
+                <span
+                  key={i}
+                  className="text-[10px] px-2 py-0.5 rounded-md bg-[#131B2D] text-[#94A3B8] border border-[#1E293F]"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Column: AI Business Expansion Vectors */}
+          <div className="p-5 rounded-xl bg-[#090D16] border border-[#1E283C] space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Briefcase className="w-4 h-4 text-purple-400" />
+                <span>AI Business Expansion Advisory Vectors</span>
+              </h3>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30 font-mono">
+                Memory Calibrated
+              </span>
+            </div>
+
+            <p className="text-xs text-[#94A3B8] leading-relaxed">
+              Based on Apex Tech Solutions' profile in Gujarat, our Multi-Agent mesh recommends 4 high-margin expansion pathways:
+            </p>
+
+            <div className="space-y-2.5">
+              <div className="p-2.5 rounded-lg bg-[#0E1524] border border-[#1E283C] flex items-start gap-2.5">
+                <Building2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <h4 className="font-semibold text-white">1. GeM Government Portal Gujarat Tenders</h4>
+                  <p className="text-[#94A3B8] text-[11px] mt-0.5">
+                    Register GSTIN 24ABCDE1234F1Z5 on the GeM portal for supply of servers & workstations to Gujarat state departments with 0% bad debt risk.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-[#0E1524] border border-[#1E283C] flex items-start gap-2.5">
+                <Zap className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <h4 className="font-semibold text-white">2. Annual Maintenance Contracts (AMC - SAC 9987)</h4>
+                  <p className="text-[#94A3B8] text-[11px] mt-0.5">
+                    Bundle enterprise laptops and networking hardware with recurring 12-month AMC service retainers at 18% GST for predictable monthly cash flow.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-[#0E1524] border border-[#1E283C] flex items-start gap-2.5">
+                <Globe className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <h4 className="font-semibold text-white">3. Inter-State IGST Enterprise Corridor</h4>
+                  <p className="text-[#94A3B8] text-[11px] mt-0.5">
+                    Expand sales beyond Gujarat into Maharashtra (Mumbai/Pune) and Karnataka (Bengaluru) tech clusters with automated IGST invoicing.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

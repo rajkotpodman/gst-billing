@@ -9,6 +9,7 @@ router.use(requireAuth);
 
 router.get('/', itemController.getItems);
 router.post('/', requireRole('OWNER', 'ADMIN'), itemController.createItem);
+router.post('/bulk', requireRole('OWNER', 'ADMIN'), itemController.createBulkItems);
 router.get('/:id', itemController.getItemById);
 router.put('/:id', requireRole('OWNER', 'ADMIN'), itemController.updateItem);
 router.delete('/:id', requireRole('OWNER', 'ADMIN'), itemController.deleteItem);

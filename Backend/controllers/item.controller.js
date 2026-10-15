@@ -73,6 +73,47 @@ export const createItem = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Bulk create / import catalog items (e.g. AI-generated top 100 tech products)
+ */
+export const createBulkItems = asyncHandler(async (req, res) => {
+  const { items = [] } = req.body;
+  if (!Array.isArray(items) || items.length === 0) {
+    return apiResponse.badRequest(res, 'Please provide an array of items to import');
+  }
+
+  const shopId = req.user.shopId;
+
+  // Fetch existing item names to prevent duplicates
+  const existing = await Item.find({ shopId }, 'name');
+  const existingNames = new Set(existing.map((i) => i.name.toLowerCase().trim()));
+
+  const newItemsToInsert = items
+    .filter((item) => item.name && item.name.trim() && !existingNames.has(item.name.toLowerCase().trim()))
+    .map((item) => ({
+      shopId,
+      name: item.name.trim(),
+      hsnCode: item.hsnCode ? item.hsnCode.trim() : '8471',
+      price: Math.max(0, Number(item.price) || 0),
+      gstPercent: item.gstPercent !== undefined ? Number(item.gstPercent) : 18,
+      description: item.description ? item.description.trim() : '',
+    }));
+
+  let inserted = [];
+  if (newItemsToInsert.length > 0) {
+    inserted = await Item.insertMany(newItemsToInsert);
+  }
+
+  const totalCount = await Item.countDocuments({ shopId });
+
+  return apiResponse.created(res, `Successfully added ${inserted.length} tech products to catalog`, {
+    insertedCount: inserted.length,
+    skippedCount: items.length - newItemsToInsert.length,
+    totalCatalogItems: totalCount,
+    items: inserted,
+  });
+});
+
+/**
  * Update catalog item
  */
 export const updateItem = asyncHandler(async (req, res) => {
@@ -112,6 +153,7 @@ export default {
   getItems,
   getItemById,
   createItem,
+  createBulkItems,
   updateItem,
   deleteItem,
 };

@@ -18,8 +18,10 @@ import {
   Target,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAIAgent } from '../../context/AIAgentContext';
 import aiAgentService from '../../services/aiAgent.service';
+import itemService from '../../services/item.service';
 import { cn } from '../../utils/cn';
 
 const AGENT_ICONS = {
@@ -43,9 +45,11 @@ export const AIAgentDrawer = () => {
     AGENT_REGISTRY,
   } = useAIAgent();
 
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
   const messagesEndRef = useRef(null);
 
@@ -152,6 +156,22 @@ How can I assist your business action today? Pick a quick suggestion below or en
     } else {
       toast.info('Party data copied to clipboard.');
       navigator.clipboard.writeText(JSON.stringify(party, null, 2));
+    }
+  };
+
+  const handleImport100Products = async (itemsToImport) => {
+    if (!itemsToImport || !itemsToImport.length) return;
+    setIsImporting(true);
+    try {
+      const res = await itemService.createBulkItems(itemsToImport);
+      const insertedCount = res?.data?.insertedCount || itemsToImport.length;
+      toast.success(`🎉 Successfully added ${insertedCount} Top Tech Products to your catalog!`);
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    } catch (err) {
+      toast.error(`Import failed: ${err.message || 'Error adding items'}`);
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -278,8 +298,42 @@ How can I assist your business action today? Pick a quick suggestion below or en
                     {msg.content}
                   </div>
 
-                  {/* If items were generated, offer direct Apply button */}
-                  {isAgent && msg.items && msg.items.length > 0 && (
+                  {/* 🚀 If 100 Tech Products were generated, offer direct 1-Click Catalog Import */}
+                  {isAgent && (msg.payload?.action === 'IMPORT_TOP_100' || msg.items?.length === 100) ? (
+                    <div className="pt-3 border-t border-[#1F2736] space-y-2.5">
+                      <div className="p-3.5 rounded-xl bg-gradient-to-r from-purple-950/80 via-indigo-950/80 to-blue-950/80 border border-purple-500/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-amber-400" />
+                            <span className="text-xs font-bold text-white">
+                              Autonomous 100 Tech Products Ready
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-purple-200">
+                            100 Verified items with HSN codes, Indian market pricing & 18% GST
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={isImporting}
+                          onClick={() => handleImport100Products(msg.items)}
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+                        >
+                          {isImporting ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>Adding 100 Items...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Package className="w-3.5 h-3.5 text-yellow-300" />
+                              <span>🚀 Add All 100 to Catalog</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ) : isAgent && msg.items && msg.items.length > 0 && (
                     <div className="pt-2 border-t border-[#1F2736] flex flex-wrap items-center gap-2">
                       <button
                         type="button"
