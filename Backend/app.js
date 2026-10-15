@@ -15,6 +15,7 @@ import partyRoutes from './routes/party.routes.js';
 import itemRoutes from './routes/item.routes.js';
 import billRoutes from './routes/bill.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
+import aiRoutes from './routes/ai.routes.js';
 
 // ─── Validate environment variables ───
 validateEnv();
@@ -80,6 +81,7 @@ app.use('/api/parties', partyRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/bills', billRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/ai', aiRoutes);
 // ──────────────────────────────────────────────
 
 // ─── 404 Handler (after all routes) ───

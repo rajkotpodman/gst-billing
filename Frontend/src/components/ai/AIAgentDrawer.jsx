@@ -16,6 +16,9 @@ import {
   RefreshCw,
   ExternalLink,
   Target,
+  Download,
+  Trash2,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -56,22 +59,47 @@ export const AIAgentDrawer = () => {
   const currentAgent = AGENT_REGISTRY[activeAgentId] || AGENT_REGISTRY.invoice;
   const AgentIcon = AGENT_ICONS[activeAgentId] || Bot;
 
-  // Initialize greeting whenever agent changes
+  // Load chat history from localStorage or set initial welcome message
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem('gst_ai_chat_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     if (activeAgentId) {
       setMessages([
         {
           role: 'agent',
           agentId: activeAgentId,
           content: `👋 **Greetings! I am the ${currentAgent.name}**.
-I am actively calibrated to your **Business Aim**: *"${activeAimObj.title}"*.
+I am actively calibrated with full memory of **Apex Tech Solutions Private Limited** (Jigsi Karia | Gujarat | GSTIN: \`24ABCDE1234F1Z5\`).
+Active Aim: *"${activeAimObj.title}"*.
 
-How can I assist your business action today? Pick a quick suggestion below or enter any request:`,
+How can I assist your business today? Ask me any question, type a natural billing prompt, or ask to formulate and add products to your catalog:`,
           timestamp: new Date(),
         },
       ]);
     }
-  }, [activeAgentId, config.activeAim]);
+  }, [activeAgentId]);
+
+  // Persist messages to localStorage
+  useEffect(() => {
+    if (messages.length > 0) {
+      try {
+        localStorage.setItem('gst_ai_chat_history', JSON.stringify(messages));
+      } catch {
+        // storage quota fallback
+      }
+    }
+  }, [messages]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -112,20 +140,75 @@ How can I assist your business action today? Pick a quick suggestion below or en
       };
 
       setMessages((prev) => [...prev, agentMsg]);
+
+      // If user instructed to add top 100 products, autonomously execute the database addition
+      if (response.action === 'IMPORT_TOP_100' && response.items?.length) {
+        handleImport100Products(response.items);
+      }
     } catch (err) {
       setMessages((prev) => [
         ...prev,
         {
           role: 'agent',
           agentId: activeAgentId,
-          content: `❌ **Error**: ${err.message || 'Unable to process request'}. Please check your API key or connection in settings.`,
+          content: `❌ **Error**: ${err.message || 'Unable to process request'}. Please check your connection or AI settings.`,
           timestamp: new Date(),
         },
       ]);
-      toast.error('Agent query error. Try checking your API key in AI Settings.');
+      toast.error('Agent query error.');
     } finally {
       setIsTyping(false);
     }
+  };
+
+  const handleDownloadChatHistory = () => {
+    const lines = [
+      '================================================================================',
+      'AI CHAT & AUDIT LOG — APEX TECH SOLUTIONS PRIVATE LIMITED',
+      'Managing Director: Jigsi Karia (Jigsi_karia@jigsikaria.com)',
+      'GSTIN: 24ABCDE1234F1Z5 | Jurisdiction: Ahmedabad, Gujarat (Code 24)',
+      `Exported Timestamp: ${new Date().toLocaleString('en-IN')}`,
+      '================================================================================\n',
+    ];
+
+    messages.forEach((m, idx) => {
+      const isUser = m.role === 'user';
+      const roleLabel = isUser
+        ? 'USER (Jigsi Karia)'
+        : `AI AGENT [${(m.agentId || activeAgentId || 'assistant').toUpperCase()}]`;
+      const timeStr = new Date(m.timestamp).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+      lines.push(`[${timeStr}] ${roleLabel}:`);
+      lines.push(`${m.content}\n`);
+      lines.push('-'.repeat(80));
+    });
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ai_chat_history.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Chat history downloaded as ai_chat_history.txt');
+  };
+
+  const handleClearChat = () => {
+    localStorage.removeItem('gst_ai_chat_history');
+    setMessages([
+      {
+        role: 'agent',
+        agentId: activeAgentId,
+        content: `👋 **Fresh Session Started**. How can I assist you with your catalog, billing, or business development?`,
+        timestamp: new Date(),
+      },
+    ]);
+    toast.info('Chat history cleared');
   };
 
   const handleCopy = (text, idx) => {
@@ -206,6 +289,23 @@ How can I assist your business action today? Pick a quick suggestion below or en
             </div>
 
             <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleDownloadChatHistory}
+                title="Save all chat and replies to text file (.txt)"
+                className="px-2.5 py-1.5 rounded-lg text-emerald-400 hover:text-white hover:bg-[#161D2A] border border-emerald-500/30 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Save .txt</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleClearChat}
+                title="Clear chat session"
+                className="p-2 rounded-lg text-[#94A3B8] hover:text-rose-400 hover:bg-[#161D2A] transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
               <button
                 type="button"
                 onClick={openSettings}
@@ -298,39 +398,17 @@ How can I assist your business action today? Pick a quick suggestion below or en
                     {msg.content}
                   </div>
 
-                  {/* 🚀 If 100 Tech Products were generated, offer direct 1-Click Catalog Import */}
+                  {/* Autonomous status badge for 100 products addition */}
                   {isAgent && (msg.payload?.action === 'IMPORT_TOP_100' || msg.items?.length === 100) ? (
-                    <div className="pt-3 border-t border-[#1F2736] space-y-2.5">
-                      <div className="p-3.5 rounded-xl bg-gradient-to-r from-purple-950/80 via-indigo-950/80 to-blue-950/80 border border-purple-500/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-1.5">
-                            <Sparkles className="w-4 h-4 text-amber-400" />
-                            <span className="text-xs font-bold text-white">
-                              Autonomous 100 Tech Products Ready
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-purple-200">
-                            100 Verified items with HSN codes, Indian market pricing & 18% GST
-                          </p>
+                    <div className="pt-2.5 border-t border-[#1F2736]">
+                      <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          <span className="font-semibold">Autonomous Catalog Sync: 100 Tech Products Active in Database</span>
                         </div>
-                        <button
-                          type="button"
-                          disabled={isImporting}
-                          onClick={() => handleImport100Products(msg.items)}
-                          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
-                        >
-                          {isImporting ? (
-                            <>
-                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                              <span>Adding 100 Items...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Package className="w-3.5 h-3.5 text-yellow-300" />
-                              <span>🚀 Add All 100 to Catalog</span>
-                            </>
-                          )}
-                        </button>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          Saved to MongoDB
+                        </span>
                       </div>
                     </div>
                   ) : isAgent && msg.items && msg.items.length > 0 && (

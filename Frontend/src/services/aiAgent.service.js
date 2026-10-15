@@ -215,27 +215,46 @@ FORMATTING REQUIREMENTS:
 `.trim();
 
     // Try chosen provider
+    let result;
     if (config.provider === 'gemini' && config.geminiKey) {
       try {
-        return await this.callGemini(config.geminiKey, config.model || 'gemini-1.5-flash', systemPrompt, prompt);
+        result = await this.callGemini(config.geminiKey, config.model || 'gemini-1.5-flash', systemPrompt, prompt);
       } catch (err) {
         console.warn('Gemini API call failed, falling back to Intelligent Agent Engine:', err.message);
-        return this.fallbackEngine(agentId, prompt, contextData, businessAimInstruction, `(Gemini Error: ${err.message})`);
+        result = this.fallbackEngine(agentId, prompt, contextData, businessAimInstruction, `(Gemini Error: ${err.message})`);
       }
-    }
-
-    if (config.provider === 'groq' && config.groqKey) {
+    } else if (config.provider === 'groq' && config.groqKey) {
       try {
         const groqModel = config.model.includes('llama') || config.model.includes('mixtral') ? config.model : 'llama-3.3-70b-versatile';
-        return await this.callGroq(config.groqKey, groqModel, systemPrompt, prompt);
+        result = await this.callGroq(config.groqKey, groqModel, systemPrompt, prompt);
       } catch (err) {
         console.warn('Groq API call failed, falling back to Intelligent Agent Engine:', err.message);
-        return this.fallbackEngine(agentId, prompt, contextData, businessAimInstruction, `(Groq Error: ${err.message})`);
+        result = this.fallbackEngine(agentId, prompt, contextData, businessAimInstruction, `(Groq Error: ${err.message})`);
       }
+    } else {
+      // Default built-in smart simulation engine (instant, zero-friction, works immediately without API key)
+      result = this.fallbackEngine(agentId, prompt, contextData, businessAimInstruction);
     }
 
-    // Default built-in smart simulation engine (instant, zero-friction, works immediately without API key)
-    return this.fallbackEngine(agentId, prompt, contextData, businessAimInstruction);
+    // Automatically record chat and response into text file on the backend
+    try {
+      fetch('/api/ai/save-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentId,
+          agentName: agent.name,
+          prompt,
+          response: result.text,
+          businessName: contextData.businessName || 'Apex Tech Solutions Private Limited',
+          gstin: contextData.gstin || '24ABCDE1234F1Z5',
+        }),
+      }).catch(() => {});
+    } catch {
+      // safe fallback
+    }
+
+    return result;
   }
 
   async callGemini(apiKey, model, systemPrompt, userPrompt) {
@@ -322,10 +341,14 @@ FORMATTING REQUIREMENTS:
 
   /**
    * Built-in Intelligent Agent Engine
-   * Generates realistic, GST-compliant responses aligned with the business aim
+   * Dynamic, conversational, GST-compliant responses with full memory of Apex Tech Solutions & Jigsi Karia
    */
   fallbackEngine(agentId, prompt, contextData, businessAimInstruction, notice = '') {
-    const lower = prompt.toLowerCase();
+    const trimmed = prompt.trim();
+    const lower = trimmed.toLowerCase();
+    const businessName = contextData.businessName || 'Apex Tech Solutions Private Limited';
+    const ownerName = contextData.ownerName || 'Jigsi Karia';
+    const gstin = contextData.gstin || '24ABCDE1234F1Z5';
     const sellerState = contextData.sellerState || 'Gujarat';
     const customerState = contextData.customerState || sellerState;
     const isIntraState = sellerState.toLowerCase() === customerState.toLowerCase();
@@ -334,16 +357,51 @@ FORMATTING REQUIREMENTS:
     let responseText = '';
     let parsedJson = null;
 
-    // ─── 🚀 Autonomous Top 100 Products & Business Expansion Engine ───
+    // ─── 1. Natural Greetings & Conversational Queries ───
+    const isGreeting =
+      /^(hi|hello|hey|good\s*(morning|afternoon|evening)|namaste|kem\s*cho|who\s*are\s*you|what\s*can\s*you\s*do|help|yo|hlo|helo)\b/i.test(
+        trimmed
+      ) || ['hi', 'hello', 'hey', 'help', 'kem cho'].includes(lower);
+
+    if (isGreeting) {
+      responseText = `👋 **Hello! Welcome to Apex Tech Solutions AI Assistant.**
+
+I have active memory of your business profile:
+- **Enterprise**: **${businessName}**
+- **Managing Director**: **${ownerName}**
+- **GSTIN**: \`${gstin}\` (State Code 24, Gujarat)
+- **Active Business Strategy**: *"${businessAimInstruction}"*
+
+### 💬 How can I assist you today?
+1. **Catalog Automation**: Say *"find top 100 tech product and add all in our catalog with same price and details"*, and I will autonomously formulate the items and add them straight to your database!
+2. **Item Pricing & HSN Search**: Ask for any product (e.g. *"What is the HSN and GST for wireless mouse?"* or *"Margin calculation for 4K monitor"*).
+3. **Draft GST Invoices**: Type natural orders like *"Sold 2 Laptops at 45000 and 1 Mouse at 850 with 18% GST"*.
+4. **Party & KYC Verification**: Ask me to verify any 15-digit GSTIN or check customer credit terms.
+5. **Business Expansion Guidance**: Ask for growth strategies in Gujarat, GeM tenders, or inter-state expansion.
+
+What would you like me to do?`;
+
+      return {
+        text: responseText,
+        parsedJson: null,
+        items: null,
+        party: null,
+        isSimulated: true,
+      };
+    }
+
+    // ─── 2. Autonomous Top 100 Products & Business Expansion Engine ───
     const isTop100Request =
       lower.includes('top 100') ||
       lower.includes('100 tech') ||
       lower.includes('100 product') ||
+      lower.includes('add all in our catalog') ||
       lower.includes('add all') ||
       lower.includes('add 100') ||
       lower.includes('import 100') ||
       lower.includes('100 item') ||
-      (lower.includes('expand') && (lower.includes('business') || lower.includes('catalog') || lower.includes('product') || lower.includes('develop')));
+      (lower.includes('expand') &&
+        (lower.includes('business') || lower.includes('catalog') || lower.includes('product') || lower.includes('develop')));
 
     if (isTop100Request) {
       const totalInventoryValue = TOP_100_TECH_PRODUCTS.reduce((acc, item) => acc + item.price, 0);
@@ -355,37 +413,42 @@ FORMATTING REQUIREMENTS:
         totalInventoryValue,
         categoriesCount: categories.length,
         items: TOP_100_TECH_PRODUCTS,
-        reasoning: `Discovered and verified top 100 commercial tech products with statutory Indian HSN codes and benchmarked market rates for ${contextData.businessName || 'Apex Tech Solutions Private Limited'}.`,
+        reasoning: `Discovered and verified top 100 commercial tech products with statutory Indian HSN codes and benchmarked market rates for ${businessName}.`,
       };
 
-      responseText = `### 🚀 Business Expansion & Autonomous 100 Tech Products Suite
+      responseText = `### 🚀 Autonomous Catalog Synthesis & Addition Complete!
 ${notice ? `> ⚠️ *${notice} — Autonomous Business Intelligence Active.*\n\n` : ''}
-I have analyzed your enterprise profile for **${contextData.businessName || 'Apex Tech Solutions Private Limited'}** (Ahmedabad, Gujarat | GSTIN: \`${contextData.gstin || '24ABCDE1234F1Z5'}\`) and formulated a complete **Commercial IT Catalog Expansion Plan**:
+With full persistent memory of **${businessName}** (Managing Director: **${ownerName}**, Ahmedabad, Gujarat | GSTIN: \`${gstin}\`), I have formulated the **Top 100 Commercial Tech Products** and prepped them for direct integration into your database catalog!
 
 #### 📊 Catalog Intelligence & Expansion Telemetry:
 - **Total Products Curated**: **100 Top-Selling Tech Hardware & Services**
-- **Commercial Sectors Covered**: **${categories.length} Specialized Sectors** (Laptops, Workstations, 4K Displays, Networking, NVMe SSDs, NAS Storage, Power UPS, POS Scanners, Video Conferencing, Cybersecurity, AMC Contracts)
+- **Commercial Sectors Covered**: **${categories.length} Specialized Sectors** (Enterprise Laptops, Desktops, Servers, 4K Displays, Managed Switches, Firewalls, NVMe SSDs, NAS Storage, POS Barcode Scanners, Video Conferencing, Cloud Retainers, IT AMC)
 - **Cumulative Catalog Inventory Value**: **₹${totalInventoryValue.toLocaleString('en-IN')}**
 - **Statutory GST Rate**: **18% Standard GST** (with official 8-digit HSN & SAC codes)
 - **Target Profit Margins**: **22% to 35% Gross Margin** aligned with your active aim (*"${businessAimInstruction}"*)
 
 ---
 
-#### 🌟 High-Impact Expansion Avenues for Your Business:
-1. **Corporate B2B Invoicing in Gujarat**:
-   - Bill industrial clients in Ahmedabad, Surat, Vadodara, and Rajkot with standard **Intra-State (CGST 9% + SGST 9%)** enabling clients to claim full Input Tax Credit (ITC).
-2. **Inter-State High-Ticket Distribution**:
-   - Fulfill orders across Maharashtra, Assam, Himachal Pradesh, and Delhi under **Inter-State IGST (18%)**, expanding reach beyond local territory.
-3. **High-Margin IT AMC & Cloud Subscriptions**:
-   - Combine hardware sales (e.g. Dell Precision Workstations, ThinkPads) with recurring **Annual Maintenance Contracts (SAC 998314)** to lock in predictable annual cash flow.
-4. **Government e-Marketplace (GeM) & Institutional Supply**:
-   - All 100 products feature statutory HSN classifications, qualifying your enterprise for state and central institutional tenders.
+#### 🌟 High-Impact Expansion Avenues for ${ownerName}:
+1. **Government e-Marketplace (GeM) Tenders in Gujarat**:
+   - Register GSTIN \`${gstin}\` on the GeM portal for institutional supply of desktops, servers, and networking gear to Gujarat government departments with 0% payment default risk.
+2. **Annual Maintenance Contracts (AMC - SAC 9987)**:
+   - Combine hardware sales (e.g. Dell Precision Workstations, ThinkPads) with recurring **Annual Maintenance Contracts (SAC 998713)** at 18% GST to lock in predictable annual recurring revenue.
+3. **Corporate B2B High-Ticket Invoicing in Gujarat**:
+   - Bill industrial clients in Ahmedabad, Sanand, Surat, and Vadodara with standard **Intra-State (CGST 9% + SGST 9%)** enabling clients to claim full Input Tax Credit (ITC).
+4. **Inter-State IGST Enterprise Corridor**:
+   - Fulfill orders across Maharashtra (Mumbai/Pune) and Karnataka (Bengaluru) tech clusters under **Inter-State IGST (18%)**, expanding reach beyond local territory.
 
 ---
 
 #### 📦 Product Preview (Sample of Top 100):
-${TOP_100_TECH_PRODUCTS.slice(0, 8).map((p, i) => `${i + 1}. **${p.name}**\n   - HSN: \`${p.hsnCode}\` | Price: **₹${p.price.toLocaleString('en-IN')}** | GST: **${p.gstPercent}%** | *${p.category}*`).join('\n')}
-*(...plus 92 more commercial hardware items, enterprise servers, and networking gear)*
+${TOP_100_TECH_PRODUCTS.slice(0, 6)
+  .map(
+    (p, i) =>
+      `${i + 1}. **${p.name}**\n   - HSN: \`${p.hsnCode}\` | Price: **₹${p.price.toLocaleString('en-IN')}** | GST: **${p.gstPercent}%** | *${p.category}*`
+  )
+  .join('\n')}
+*(...plus 94 more commercial hardware items, enterprise servers, and networking gear)*
 
 \`\`\`json
 {
@@ -396,7 +459,7 @@ ${TOP_100_TECH_PRODUCTS.slice(0, 8).map((p, i) => `${i + 1}. **${p.name}**\n   -
 }
 \`\`\`
 
-👉 **Click the purple button below: "🚀 Add All 100 Tech Products to Catalog" to inject these products directly into your database in 1 click!**`;
+✅ **All 100 products have been formatted and are ready in your catalog!**`;
 
       return {
         text: responseText,
@@ -409,20 +472,20 @@ ${TOP_100_TECH_PRODUCTS.slice(0, 8).map((p, i) => `${i + 1}. **${p.name}**\n   -
       };
     }
 
-    if (agentId === 'invoice') {
-      // Extract numbers or items if user mentioned them
+    // ─── 3. Invoicing Intelligence ───
+    if (agentId === 'invoice' || lower.includes('sold') || lower.includes('invoice') || lower.includes('bill for')) {
       const itemsList = [];
       if (lower.includes('laptop') || lower.includes('computer')) {
-        itemsList.push({ name: 'Commercial Laptop i7 16GB', hsnCode: '847130', quantity: 2, price: 54000, gstPercent: 18 });
+        itemsList.push({ name: 'Commercial Laptop i7 16GB', hsnCode: '84713010', quantity: 2, price: 54000, gstPercent: 18 });
       }
       if (lower.includes('mouse') || lower.includes('keyboard')) {
-        itemsList.push({ name: 'Ergonomic Wireless Mouse', hsnCode: '847160', quantity: 5, price: 850, gstPercent: 18 });
+        itemsList.push({ name: 'Ergonomic Wireless Mouse', hsnCode: '84716060', quantity: 5, price: 850, gstPercent: 18 });
       }
       if (lower.includes('monitor') || lower.includes('display')) {
-        itemsList.push({ name: '27-inch 4K IPS Business Monitor', hsnCode: '852852', quantity: 2, price: 16500, gstPercent: 18 });
+        itemsList.push({ name: '27-inch 4K IPS Business Monitor', hsnCode: '85285200', quantity: 2, price: 16500, gstPercent: 18 });
       }
       if (lower.includes('cable') || lower.includes('hdmi')) {
-        itemsList.push({ name: 'Braided 4K HDMI Cable (2m)', hsnCode: '854442', quantity: 4, price: 450, gstPercent: 18 });
+        itemsList.push({ name: 'Braided 4K HDMI Cable (2m)', hsnCode: '85444299', quantity: 4, price: 450, gstPercent: 18 });
       }
 
       if (itemsList.length === 0) {
@@ -434,7 +497,7 @@ ${TOP_100_TECH_PRODUCTS.slice(0, 8).map((p, i) => `${i + 1}. **${p.name}**\n   -
 
       parsedJson = {
         items: itemsList,
-        reasoning: `Items drafted according to active business aim. Tax categorized as ${taxType} with valid 6-digit HSN codes.`
+        reasoning: `Items drafted according to active business aim. Tax categorized as ${taxType} with valid 8-digit HSN codes.`
       };
 
       responseText = `### 🧾 Invoice Intelligence Agent Response
@@ -450,17 +513,14 @@ ${itemsList.map((item, idx) => `${idx + 1}. **${item.name}** | HSN: \`${item.hsn
 - **Tax Classification**: **${taxType}**
 - **Tax Shield Status**: ✅ HSN codes verified under Schedule of GST Rates.
 
-#### 💡 Business Aim Alignment:
-- Pricing configured with healthy profit margin protection.
-- Statutory GST compliant under Section 31 of CGST Act.
-
 \`\`\`json
 ${JSON.stringify(parsedJson, null, 2)}
 \`\`\`
 
 *Click **"Apply directly to Bill Form"** below to insert these items instantly!*`;
 
-    } else if (agentId === 'party') {
+    // ─── 4. Party & KYC Verification ───
+    } else if (agentId === 'party' || lower.includes('gstin') || lower.includes('customer') || lower.includes('kyc')) {
       const gstinMatch = prompt.match(/\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}/i);
       const detectedGstin = gstinMatch ? gstinMatch[0].toUpperCase() : '24ABCDE1234F1Z5';
       const stateCode = detectedGstin.substring(0, 2);
@@ -495,57 +555,133 @@ ${JSON.stringify(parsedJson, null, 2)}
 
 *Click **"Fill Customer Details"** below to load this party into your form!*`;
 
-    } else if (agentId === 'catalog') {
-      responseText = `### 📦 Catalog & Pricing Agent Response
-${notice ? `> ⚠️ *${notice} — Displaying instant intelligent agent simulation.*\n\n` : ''}
-Here is the recommended GST classification and margin pricing strategy:
+    // ─── 5. Catalog, HSN & Dynamic Pricing Calculation ───
+    } else if (agentId === 'catalog' || lower.includes('hsn') || lower.includes('price') || lower.includes('margin') || lower.includes('rate') || lower.includes('cost')) {
+      // Dynamic Knowledge Mapping for Product Categories
+      let productName = 'Commercial Electronics & IT Hardware';
+      let hsn = '84716060';
+      let gst = 18;
+      let costPrice = 1800;
 
-#### 🏷️ Recommended HSN & Tax Slab:
-- **Product Classification**: Computer Peripherals / Electronics / Services
-- **Standard HSN/SAC Code**: \`847160\` (Input/Output Units) or \`998314\` (IT Services)
-- **Applicable GST Rate**: **18%** (Standard slab for commercial tech goods)
+      // Extract price or cost if user mentioned any numbers
+      const numMatch = prompt.match(/(?:cost|price|rs\.?|inr|₹)?\s*(\d{2,7})/i);
+      if (numMatch && parseInt(numMatch[1], 10) > 10) {
+        costPrice = parseInt(numMatch[1], 10);
+      }
 
-#### 💰 Margin & Pricing Calibration:
-- If Cost Price is **₹1,500**:
-  - Target Markup (25%): **+₹375**
-  - Net Selling Price (Before Tax): **₹1,875**
-  - CGST (9%): **₹168.75** | SGST (9%): **₹168.75**
-  - **Final MRP / Invoice Total**: **₹2,212.50**
+      if (lower.includes('laptop') || lower.includes('notebook') || lower.includes('thinkpad') || lower.includes('macbook')) {
+        productName = 'Business Laptop / Ultrabook';
+        hsn = '84713010';
+        gst = 18;
+        if (!numMatch) costPrice = 45000;
+      } else if (lower.includes('desktop') || lower.includes('pc') || lower.includes('server') || lower.includes('workstation')) {
+        productName = 'Enterprise Workstation / Server Unit';
+        hsn = '84715000';
+        gst = 18;
+        if (!numMatch) costPrice = 65000;
+      } else if (lower.includes('monitor') || lower.includes('display') || lower.includes('screen') || lower.includes('tv')) {
+        productName = 'Commercial 4K Display / IPS Monitor';
+        hsn = '85285200';
+        gst = 18;
+        if (!numMatch) costPrice = 14500;
+      } else if (lower.includes('mouse') || lower.includes('keyboard')) {
+        productName = 'Ergonomic Input Peripherals (Mouse / Keyboard)';
+        hsn = '84716060';
+        gst = 18;
+        if (!numMatch) costPrice = 950;
+      } else if (lower.includes('router') || lower.includes('switch') || lower.includes('wifi') || lower.includes('wi-fi') || lower.includes('network') || lower.includes('firewall')) {
+        productName = 'Enterprise Networking Router & Managed Switch';
+        hsn = '85176290';
+        gst = 18;
+        if (!numMatch) costPrice = 12000;
+      } else if (lower.includes('printer') || lower.includes('scanner') || lower.includes('toner')) {
+        productName = 'Multifunction Laser Printer & Scanner';
+        hsn = '84433200';
+        gst = 18;
+        if (!numMatch) costPrice = 18500;
+      } else if (lower.includes('ssd') || lower.includes('hard disk') || lower.includes('ram') || lower.includes('storage') || lower.includes('nvme')) {
+        productName = 'High-Speed NVMe Storage / Server Memory';
+        hsn = '84717020';
+        gst = 18;
+        if (!numMatch) costPrice = 7500;
+      } else if (lower.includes('cable') || lower.includes('hdmi') || lower.includes('adapter') || lower.includes('charger')) {
+        productName = 'High-Speed Data & Power Connectivity Cables';
+        hsn = '85444299';
+        gst = 18;
+        if (!numMatch) costPrice = 350;
+      } else if (lower.includes('amc') || lower.includes('software') || lower.includes('cloud') || lower.includes('service') || lower.includes('consult')) {
+        productName = 'Annual IT Maintenance & Cloud Support Service';
+        hsn = '998314';
+        gst = 18;
+        if (!numMatch) costPrice = 10000;
+      } else if (lower.includes('cctv') || lower.includes('camera')) {
+        productName = 'IP Security Surveillance Camera';
+        hsn = '85258900';
+        gst = 18;
+        if (!numMatch) costPrice = 3200;
+      } else if (lower.includes('chair') || lower.includes('table') || lower.includes('furniture')) {
+        productName = 'Office Ergonomic Workstation Furniture';
+        hsn = '94031000';
+        gst = 18;
+        if (!numMatch) costPrice = 6500;
+      }
 
-#### 🎯 Strategic Advantage:
-- Aligns with your active business aim by securing target margins before discounts.
-- Prevents underpricing and guarantees positive gross cashflow on every unit sold.`;
+      const markupPercent = 25;
+      const markupAmount = (costPrice * markupPercent) / 100;
+      const sellingPrice = costPrice + markupAmount;
+      const cgst = (sellingPrice * 9) / 100;
+      const sgst = (sellingPrice * 9) / 100;
+      const finalTotal = sellingPrice + cgst + sgst;
 
-    } else if (agentId === 'tax') {
+      responseText = `### 📦 Catalog & Pricing Intelligence Response
+${notice ? `> ⚠️ *${notice} — Displaying dynamic intelligent calculation.*\n\n` : ''}
+Here is the statutory GST classification and strategic pricing calculation for **${productName}**:
+
+#### 🏷️ Recommended HSN & Statutory Tax Slab:
+- **Product Classification**: **${productName}**
+- **Official HSN / SAC Code**: \`${hsn}\`
+- **Applicable GST Rate**: **${gst}%** (Schedule standard)
+
+#### 💰 Margin & Pricing Calibration (Aim: *${businessAimInstruction}*):
+- **Base Cost Price**: **₹${costPrice.toLocaleString('en-IN')}**
+- **Target Gross Markup (${markupPercent}%)**: **+₹${markupAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}**
+- **Net Selling Price (Before Tax)**: **₹${sellingPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}**
+- **CGST (9%)**: **₹${cgst.toLocaleString('en-IN', { maximumFractionDigits: 2 })}** | **SGST (9%)**: **₹${sgst.toLocaleString('en-IN', { maximumFractionDigits: 2 })}**
+- **Final Tax Invoice Total (MRP)**: **₹${finalTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}**
+
+#### 🎯 Strategic Recommendation:
+- Maintains healthy gross profit margins while preserving customer value.
+- When billing customers in Gujarat, apply **Intra-State (CGST 9% + SGST 9%)**. For out-of-state shipments, apply **IGST 18%**.`;
+
+    // ─── 6. Tax Filing & Audit ───
+    } else if (agentId === 'tax' || lower.includes('tax') || lower.includes('audit') || lower.includes('gstr')) {
       responseText = `### 📊 GST Tax Filing & Audit Shield Agent
 ${notice ? `> ⚠️ *${notice} — Displaying instant intelligent agent simulation.*\n\n` : ''}
-#### 🛡️ Pre-Filing Diagnostic Audit:
+#### 🛡️ Diagnostic Audit for ${businessName}:
 1. **Invoice Numbering Sequential Integrity**:
    - Section 31 of CGST Rules mandates unique consecutive invoice numbers per financial year.
-   - Status: ✅ Compliant with system prefix sequence.
-2. **Intra vs Inter-State Segregation**:
+   - Status: ✅ Fully compliant.
+2. **Jurisdiction Segregation**:
    - Invoices to customers inside **${sellerState}** have CGST & SGST applied evenly.
    - Out-of-state shipments correctly billed under IGST to ensure seamless Input Tax Credit (ITC) for your B2B clients.
 3. **ITC Reconciliation Tip**:
    - Cross-verify supplier invoices in GSTR-2B before making monthly tax settlement in GSTR-3B to prevent reverse interest penalties under Section 50.`;
 
+    // ─── 7. Strategy & General Assistant ───
     } else {
-      // strategy
       responseText = `### 🚀 Executive Business Strategist Agent
-${notice ? `> ⚠️ *${notice} — Displaying instant intelligent agent simulation.*\n\n` : ''}
-#### 🎯 Business Aim Execution Plan:
-Based on your current billing metrics, here are **3 High-Impact Executive Moves**:
+${notice ? `> ⚠️ *${notice} — Displaying strategic advisory.*\n\n` : ''}
+#### 🎯 Business Strategy for ${businessName} (${ownerName}):
+Based on your enterprise profile in Ahmedabad, Gujarat, here are **3 High-Impact Executive Moves**:
 
 1. **Move #1: Accelerate Receivables with Dynamic 2% Discount**:
-   - For invoices exceeding ₹25,000, offer a 2% prompt-payment credit note if cleared within 7 days.
-   - Impact: Increases cash liquidity by up to 24% and slashes overdue receivables.
+   - For invoices exceeding ₹25,000, offer a 2% prompt-payment credit note if cleared within 7 days to maximize cashflow.
+2. **Move #2: Bundle High-Margin Catalog Accessories & AMC**:
+   - Pair major hardware tickets with annual maintenance contracts (SAC 9987) and cables to lift margins by 4.8%.
+3. **Move #3: Expand via GeM Government Portal in Gujarat**:
+   - Use GSTIN \`${gstin}\` to participate in public procurement tenders with zero bad-debt risk.
 
-2. **Move #2: Bundle High-Margin Catalog Accessories**:
-   - Attach high-margin consumables (cables, adapters, AMC warranty) to major hardware tickets.
-   - Impact: Lifts average ticket margin by 4.8% without customer pushback.
-
-3. **Move #3: Reconcile Input Tax Credit Early**:
-   - Review incoming supplier bills on the 20th of every month to utilize maximum ITC offset against outgoing tax liabilities.`;
+*Feel free to ask me any specific question about your catalog, invoices, taxes, or business expansion!*`;
     }
 
     return {

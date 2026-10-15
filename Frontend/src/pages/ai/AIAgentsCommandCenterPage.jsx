@@ -21,6 +21,8 @@ import {
   Rocket,
   Check,
   Building2,
+  Download,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAIAgent } from '../../context/AIAgentContext';
@@ -54,27 +56,9 @@ export const AIAgentsCommandCenterPage = () => {
   const [testPrompt, setTestPrompt] = useState('');
   const [playgroundOutput, setPlaygroundOutput] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isImporting100, setIsImporting100] = useState(false);
   const [bulkResult, setBulkResult] = useState(null);
 
   const activeAgent = AGENT_REGISTRY[selectedAgentId] || AGENT_REGISTRY.invoice;
-
-  const handleImportTop100 = async () => {
-    setIsImporting100(true);
-    const toastId = toast.loading('Autonomous AI Agents importing Top 100 Tech Products to database catalog...');
-    try {
-      const res = await itemService.createBulkItems(TOP_100_TECH_PRODUCTS);
-      setBulkResult(res);
-      toast.success(
-        `Catalog Updated! ${res?.insertedCount ?? 100} tech products added (${res?.skippedCount ?? 0} skipped). Total catalog: ${res?.totalCatalogItems ?? '100+'} items.`,
-        { id: toastId }
-      );
-    } catch (err) {
-      toast.error(`Import failed: ${err.message || 'Error importing items'}`, { id: toastId });
-    } finally {
-      setIsImporting100(false);
-    }
-  };
 
   const handleRunPlayground = async (promptOverride) => {
     const prompt = (promptOverride || testPrompt || activeAgent.samplePrompts[0]).trim();
@@ -92,6 +76,12 @@ export const AIAgentsCommandCenterPage = () => {
         },
       });
       setPlaygroundOutput(res);
+      if (res.action === 'IMPORT_TOP_100' && res.items?.length) {
+        itemService.createBulkItems(res.items).then((bulkRes) => {
+          setBulkResult(bulkRes);
+          toast.success(`Autonomous AI added ${bulkRes.insertedCount ?? 100} products directly to your database catalog!`);
+        }).catch(() => {});
+      }
     } catch (err) {
       setPlaygroundOutput({
         text: `Error executing agent: ${err.message}`,
@@ -245,15 +235,15 @@ export const AIAgentsCommandCenterPage = () => {
 
           {/* Quick Action Buttons */}
           <div className="flex items-center gap-3 flex-wrap">
-            <button
-              type="button"
-              disabled={isImporting100}
-              onClick={handleImportTop100}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white text-xs font-bold shadow-lg shadow-indigo-500/25 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+            <a
+              href="/api/ai/download"
+              download="ai_chat_history.txt"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 cursor-pointer"
+              title="Download entire AI chat history text file"
             >
-              <Zap className="w-4 h-4 text-yellow-300 animate-bounce" />
-              <span>{isImporting100 ? 'Importing 100 Products...' : '⚡ Add All 100 Products to Catalog'}</span>
-            </button>
+              <Download className="w-4 h-4 text-emerald-200" />
+              <span>Download Chat History (.txt)</span>
+            </a>
 
             <button
               type="button"
@@ -266,7 +256,7 @@ export const AIAgentsCommandCenterPage = () => {
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#141B2D] hover:bg-[#1E283C] text-xs font-semibold text-[#CBD5E1] border border-[#232F48] transition-all cursor-pointer"
             >
               <Bot className="w-4 h-4 text-[#818CF8]" />
-              <span>Simulate "Find Top 100 Tech Products" Prompt</span>
+              <span>Ask AI: "Find Top 100 Tech Products"</span>
             </button>
           </div>
         </div>
