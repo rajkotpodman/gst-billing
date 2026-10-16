@@ -826,4 +826,28 @@ export function generate5000Products() {
   return products;
 }
 
+export function getTopMobileAccessories(count = 500) {
+  const all = generate5000Products();
+  const accessories = all.filter(
+    (item) =>
+      item.category === 'Mobile Accessories & Audio' ||
+      item.category === 'Cables & Connectivity' ||
+      (item.category === 'Smartphones & Mobiles' && item.price <= 15000)
+  );
+
+  if (accessories.length >= count) {
+    return accessories.slice(0, count);
+  }
+
+  const set = new Set(accessories.map((a) => a.name));
+  for (const item of all) {
+    if (!set.has(item.name)) {
+      accessories.push(item);
+      if (accessories.length >= count) break;
+    }
+  }
+  return accessories.slice(0, count);
+}
+
 export default generate5000Products;
+

@@ -146,8 +146,12 @@ How can I assist your business today? Ask me any question, type a natural billin
       // Autonomously execute database catalog addition if requested
       if (response.action === 'IMPORT_5000_PRODUCTS') {
         handleImport5000Products();
+      } else if (response.action === 'IMPORT_500_ACCESSORIES' && response.items?.length) {
+        handleImport500Accessories(response.items);
       } else if (response.action === 'IMPORT_TOP_100' && response.items?.length) {
         handleImport100Products(response.items);
+      } else if (response.action === 'IMPORT_CATALOG_ITEMS' && response.items?.length) {
+        handleImportCustomCatalog(response.items, `${response.items.length} Items`);
       }
     } catch (err) {
       setMessages((prev) => [
@@ -257,6 +261,39 @@ How can I assist your business today? Ask me any question, type a natural billin
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err) {
       toast.error(`Import failed: ${err.message || 'Error adding items'}`);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleImport500Accessories = async (itemsToImport) => {
+    setIsImporting(true);
+    const toastId = toast.loading('🚀 Autonomously formulating & adding 500 High-Margin Mobile Accessories to database...');
+    try {
+      const res = await itemService.importAccessories(500);
+      const insertedCount = res?.data?.insertedCount || itemsToImport?.length || 500;
+      toast.success(`🎉 Successfully added ${insertedCount} Mobile Accessories to your database catalog!`, { id: toastId });
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    } catch (err) {
+      toast.error(`Import failed: ${err.message || 'Error adding items'}`, { id: toastId });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleImportCustomCatalog = async (itemsToImport, label = 'Products') => {
+    if (!itemsToImport || !itemsToImport.length) return;
+    setIsImporting(true);
+    const toastId = toast.loading(`🚀 Adding ${itemsToImport.length} ${label} to database catalog...`);
+    try {
+      const res = await itemService.createBulkItems(itemsToImport);
+      const insertedCount = res?.data?.insertedCount || itemsToImport.length;
+      toast.success(`🎉 Successfully added ${insertedCount} ${label} directly to your database catalog!`, { id: toastId });
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    } catch (err) {
+      toast.error(`Import failed: ${err.message || 'Error adding items'}`, { id: toastId });
     } finally {
       setIsImporting(false);
     }
@@ -431,6 +468,23 @@ How can I assist your business today? Ask me any question, type a natural billin
                         </span>
                       </div>
                     </div>
+                  ) : isAgent && (msg.payload?.action === 'IMPORT_500_ACCESSORIES' || msg.items?.length === 500) ? (
+                    <div className="pt-2.5 border-t border-[#1F2736] space-y-2">
+                      <div className="p-3 rounded-xl bg-gradient-to-r from-blue-950/60 to-indigo-950/60 border border-blue-500/40 text-blue-200 text-xs flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Package className="w-4 h-4 text-blue-400" />
+                          <span className="font-semibold">500 High-Margin Mobile Accessories Ready</span>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={isImporting}
+                          onClick={() => handleImport500Accessories(msg.items)}
+                          className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                        >
+                          ⚡ Add All 500 to Catalog
+                        </button>
+                      </div>
+                    </div>
                   ) : isAgent && (msg.payload?.action === 'IMPORT_TOP_100' || msg.items?.length === 100) ? (
                     <div className="pt-2.5 border-t border-[#1F2736]">
                       <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between">
@@ -438,20 +492,34 @@ How can I assist your business today? Ask me any question, type a natural billin
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                           <span className="font-semibold">Autonomous Catalog Sync: 100 Tech Products Active in Database</span>
                         </div>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                          Saved to MongoDB
-                        </span>
+                        <button
+                          type="button"
+                          disabled={isImporting}
+                          onClick={() => handleImport100Products(msg.items)}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-sm transition-all cursor-pointer"
+                        >
+                          Re-Sync to Catalog
+                        </button>
                       </div>
                     </div>
                   ) : isAgent && msg.items && msg.items.length > 0 && (
                     <div className="pt-2 border-t border-[#1F2736] flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => handleApplyItems(msg.items)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer"
+                        disabled={isImporting}
+                        onClick={() => handleImportCustomCatalog(msg.items, `${msg.items.length} Products`)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>✨ Apply {msg.items.length} Items directly to Form</span>
+                        <Package className="w-3.5 h-3.5" />
+                        <span>📦 Add {msg.items.length} Items to Inventory Catalog</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyItems(msg.items)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-[#CBD5E1] hover:text-white font-medium text-xs border border-[#334155] transition-all cursor-pointer"
+                      >
+                        <Receipt className="w-3.5 h-3.5" />
+                        <span>Apply to Invoice Form</span>
                       </button>
                     </div>
                   )}

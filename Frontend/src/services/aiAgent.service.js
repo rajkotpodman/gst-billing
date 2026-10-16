@@ -5,7 +5,7 @@
  */
 
 import { TOP_100_TECH_PRODUCTS } from '../constants/top100TechProducts';
-import { generate5000Products } from '../constants/products5000Catalog';
+import { generate5000Products, getTopMobileAccessories } from '../constants/products5000Catalog';
 
 export const BUSINESS_AIMS = {
   MAX_MARGIN: {
@@ -162,11 +162,21 @@ class AIAgentService {
   }
 
   getConfig() {
+    let savedModel = localStorage.getItem(this.storageKeyModel);
+    // Auto-migrate legacy 1.5 or 2.0 models that are no longer supported
+    if (!savedModel || savedModel.includes('1.5') || savedModel.includes('2.0')) {
+      savedModel = 'gemini-3.8-flash';
+      localStorage.setItem(this.storageKeyModel, savedModel);
+    }
+
+    const defaultGeminiKey = import.meta.env?.VITE_GEMINI_API_KEY || '';
+    const geminiKey = localStorage.getItem(this.storageKeyGemini) || defaultGeminiKey;
+
     return {
       provider: localStorage.getItem(this.storageKeyProvider) || 'gemini',
-      geminiKey: localStorage.getItem(this.storageKeyGemini) || '',
+      geminiKey,
       groqKey: localStorage.getItem(this.storageKeyGroq) || '',
-      model: localStorage.getItem(this.storageKeyModel) || 'gemini-1.5-flash',
+      model: savedModel,
       activeAim: localStorage.getItem(this.storageKeyAim) || 'MAX_MARGIN',
       customAim: localStorage.getItem(this.storageKeyCustomAim) || '',
     };
@@ -228,13 +238,15 @@ FORMATTING REQUIREMENTS:
   "party": { "name": "...", "gstin": "...", "state": "...", "mobile": "..." }
 }
 - Always specify CGST, SGST, or IGST percentage breakdown clearly.
+- If the user asks to add or generate catalog items, mobile accessories, or products:
+  Provide an executive category overview and a sample of 3-5 top items in the \`\`\`json block. State that the full catalog is synchronized for 1-click import into MongoDB.
 `.trim();
 
     // Try chosen provider
     let result;
     if (config.provider === 'gemini' && config.geminiKey) {
       try {
-        result = await this.callGemini(config.geminiKey, config.model || 'gemini-1.5-flash', systemPrompt, prompt);
+        result = await this.callGemini(config.geminiKey, config.model || 'gemini-3.8-flash', systemPrompt, prompt);
       } catch (err) {
         console.warn('Gemini API call failed, falling back to Intelligent Agent Engine:', err.message);
         result = this.fallbackEngine(agentId, prompt, contextData, businessAimInstruction, `(Gemini Error: ${err.message})`);
@@ -274,34 +286,49 @@ FORMATTING REQUIREMENTS:
   }
 
   async callGemini(apiKey, model, systemPrompt, userPrompt) {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    const payload = {
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: `${systemPrompt}\n\nUSER PROMPT / TASK:\n${userPrompt}` }]
+    // Normalize and prepare candidate models for fallback
+    const requestedModel = (!model || model.includes('1.5') || model.includes('2.0')) ? 'gemini-3.8-flash' : model;
+    const candidateModels = Array.from(new Set([requestedModel, 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite']));
+
+    let lastError = null;
+
+    for (const activeModel of candidateModels) {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: `${systemPrompt}\n\nUSER PROMPT / TASK:\n${userPrompt}` }]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 8192,
         }
-      ],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 1500,
+      };
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData?.error?.message || `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated from Gemini.';
+        return this.parseAgentResponse(text, userPrompt);
+      } catch (err) {
+        console.warn(`callGemini attempt with ${activeModel} failed:`, err.message);
+        lastError = err;
       }
-    };
-
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData?.error?.message || `HTTP ${res.status}`);
     }
 
-    const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated from Gemini.';
-    return this.parseAgentResponse(text);
+    throw lastError || new Error('All Gemini candidate models failed.');
   }
 
   async callGroq(apiKey, model, systemPrompt, userPrompt) {
@@ -313,7 +340,7 @@ FORMATTING REQUIREMENTS:
         { role: 'user', content: userPrompt }
       ],
       temperature: 0.3,
-      max_tokens: 1500,
+      max_tokens: 3000,
     };
 
     const res = await fetch(endpoint, {
@@ -332,10 +359,10 @@ FORMATTING REQUIREMENTS:
 
     const data = await res.json();
     const text = data?.choices?.[0]?.message?.content || 'No response generated from Groq.';
-    return this.parseAgentResponse(text);
+    return this.parseAgentResponse(text, userPrompt);
   }
 
-  parseAgentResponse(text) {
+  parseAgentResponse(text, userPrompt = '') {
     let parsedJson = null;
     try {
       const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/{[\s\S]*}/);
@@ -347,22 +374,54 @@ FORMATTING REQUIREMENTS:
     }
 
     const lower = text.toLowerCase();
-    let action = parsedJson?.action || null;
-    let items = parsedJson?.items || null;
+    const promptLower = (userPrompt || '').toLowerCase();
+    const fullText = `${lower} ${promptLower}`;
 
-    if (
-      action === 'IMPORT_5000_PRODUCTS' ||
-      lower.includes('5000') ||
-      lower.includes('5,000') ||
-      lower.includes('five thousand')
-    ) {
-      if (lower.includes('product') || lower.includes('catalog') || lower.includes('import') || lower.includes('add')) {
-        action = 'IMPORT_5000_PRODUCTS';
-        items = generate5000Products();
+    let action = parsedJson?.action || null;
+    let items = Array.isArray(parsedJson?.items) ? parsedJson.items : null;
+
+    // Resilient fallback for incomplete/truncated JSON
+    if (!items || !items.length) {
+      const regex = /\{\s*"name"\s*:\s*"([^"]+)"\s*,\s*"hsnCode"\s*:\s*"([^"]+)"\s*,\s*("quantity"\s*:\s*\d+\s*,\s*)?"price"\s*:\s*(\d+(\.\d+)?)\s*,\s*"gstPercent"\s*:\s*(\d+(\.\d+)?)/g;
+      const extracted = [];
+      let m;
+      while ((m = regex.exec(text)) !== null) {
+        extracted.push({
+          name: m[1],
+          hsnCode: m[2],
+          price: parseFloat(m[4]),
+          gstPercent: parseFloat(m[6]) || 18,
+          description: `${m[1]} with statutory 18% GST invoice.`,
+        });
       }
-    } else if (action === 'IMPORT_TOP_100' || lower.includes('100 product') || lower.includes('top 100')) {
+      if (extracted.length > 0) items = extracted;
+    }
+
+    // Check catalog import intents
+    const is500Accessories =
+      (fullText.includes('500') || fullText.includes('accessories') || fullText.includes('accessory')) &&
+      (fullText.includes('mobile') || fullText.includes('catalog') || fullText.includes('project') || fullText.includes('product') || fullText.includes('add'));
+
+    const is5000Request =
+      action === 'IMPORT_5000_PRODUCTS' ||
+      fullText.includes('5000') ||
+      fullText.includes('5,000') ||
+      fullText.includes('five thousand');
+
+    if (is500Accessories && (!items || items.length < 100)) {
+      action = 'IMPORT_500_ACCESSORIES';
+      items = getTopMobileAccessories(500);
+      if (!text.includes('500 High-Margin Mobile Accessories') && !text.includes('500 Top High-Margin')) {
+        text += `\n\n✅ **Autonomous 500-SKU Mobile Accessories Catalog Formulated**\nDirectly synchronized ${items.length} verified products with statutory HSN codes (7007, 3926, 8504, 8544, 8518) and 18% GST. Ready to add directly to your database catalog!`;
+      }
+    } else if (is5000Request && (fullText.includes('product') || fullText.includes('catalog') || fullText.includes('import') || fullText.includes('add'))) {
+      action = 'IMPORT_5000_PRODUCTS';
+      items = generate5000Products();
+    } else if (action === 'IMPORT_TOP_100' || fullText.includes('100 product') || fullText.includes('top 100')) {
       action = 'IMPORT_TOP_100';
       items = TOP_100_TECH_PRODUCTS;
+    } else if (items && items.length > 0) {
+      action = action || 'IMPORT_CATALOG_ITEMS';
     }
 
     return {
@@ -392,6 +451,48 @@ FORMATTING REQUIREMENTS:
 
     let responseText = '';
     let parsedJson = null;
+
+    // ─── 0. Autonomous 500 Mobile Accessories Catalog ───
+    const is500Accessories =
+      (lower.includes('500') || lower.includes('accessories') || lower.includes('accessory')) &&
+      (lower.includes('mobile') || lower.includes('catalog') || lower.includes('project') || lower.includes('product') || lower.includes('add'));
+
+    if (is500Accessories && !lower.includes('5000')) {
+      const accessories500 = getTopMobileAccessories(500);
+      const totalInventoryValue = accessories500.reduce((acc, item) => acc + item.price, 0);
+
+      parsedJson = {
+        action: 'IMPORT_500_ACCESSORIES',
+        count: accessories500.length,
+        totalInventoryValue,
+        items: accessories500,
+        reasoning: `Synthesized 500 high-margin mobile accessories & audio items (Tempered glass, GaN chargers, braided cables, MagSafe cases, audio) for ${businessName}.`,
+      };
+
+      responseText = `### 🚀 Autonomous 500 Mobile Accessories & Fast-Moving Tech Catalog Formulated!
+${notice ? `> ⚠️ *${notice} — Autonomous Business Intelligence Active.*\n\n` : ''}
+With full persistent memory of **${businessName}** (Managing Director: **${ownerName}**, Ahmedabad, Gujarat | GSTIN: \`${gstin}\`), I have formulated **500 High-Margin Mobile Accessories & Audio Products** directly calibrated for 35%–65% profit margins under standard **18% GST (CGST 9% + SGST 9%)**!
+
+#### 📱 5 Master Profit Categories Included:
+1. **9H / 11D UV & Matte Privacy Glass** (HSN: 70071900 | 65%–80% Margin)
+2. **MagSafe & Shockproof Hybrid Armor Cases** (HSN: 39269099 | 50%–65% Margin)
+3. **GaN Ultra-Fast Chargers 20W–65W PD** (HSN: 85044030 | 35%–45% Margin)
+4. **Braided Type-C to Type-C 100W & Lightning Cables** (HSN: 85444290 | 55%–70% Margin)
+5. **TWS Earbuds, Bluetooth Neckbands & Car Mounts** (HSN: 85183000 / 85299090 | 30%–40% Margin)
+
+- **Total SKUs**: **${accessories500.length} Ready Items**
+- **Catalog Estimated Wholesale Value**: **₹${totalInventoryValue.toLocaleString('en-IN')}**
+- **Tax Breakdown**: **18% GST** (9% CGST + 9% SGST for intra-state Gujarat sales with 100% ITC pass-through)`;
+
+      return {
+        text: responseText,
+        parsedJson,
+        action: 'IMPORT_500_ACCESSORIES',
+        items: accessories500,
+        party: null,
+        isSimulated: true,
+      };
+    }
 
     // ─── 1. Autonomous 5,000+ Products Web Catalog Engine ───
     const is5000Request =
@@ -849,20 +950,30 @@ Based on your enterprise profile in Ahmedabad, Gujarat, here are **3 High-Impact
   async testConnection(provider, key, model) {
     if (provider === 'gemini') {
       if (!key) throw new Error('Please enter a Gemini API Key');
-      const testModel = model || 'gemini-1.5-flash';
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${testModel}:generateContent?key=${key}`;
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: 'Respond with "Gemini API Connected Successfully".' }] }]
-        })
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `Status ${res.status}`);
+      const requestedModel = (!model || model.includes('1.5') || model.includes('2.0')) ? 'gemini-3.8-flash' : model;
+      const candidateModels = Array.from(new Set([requestedModel, 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite']));
+
+      let lastErr = null;
+      for (const activeModel of candidateModels) {
+        try {
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${key}`;
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ role: 'user', parts: [{ text: 'Respond with "Gemini API Connected Successfully".' }] }]
+            })
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err?.error?.message || `Status ${res.status}`);
+          }
+          return `Gemini API verified and operational (${activeModel})!`;
+        } catch (e) {
+          lastErr = e;
+        }
       }
-      return 'Gemini API verified and operational!';
+      throw lastErr || new Error('Failed to verify Gemini API key.');
     } else if (provider === 'groq') {
       if (!key) throw new Error('Please enter a Groq API Key');
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {

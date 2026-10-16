@@ -1,0 +1,104 @@
+name: Release - Multi-OS Cross-Platform Packaging & Publishing
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Tag Name (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-and-package:
+    name: Build & Package Artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: |
+            Backend/package-lock.json
+            Frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          cd Backend && npm ci || npm install
+          cd ../Frontend && npm ci || npm install
+
+      - name: Build Frontend Production Bundle
+        working-directory: ./Frontend
+        run: npm run build
+        env:
+          VITE_API_URL: http://localhost:5001/api
+
+      - name: Package Release Bundles
+        run: |
+          mkdir -p release-assets
+
+          # Package Frontend Bundle
+          tar -czf release-assets/gst-billing-frontend.tar.gz -C Frontend/dist .
+          zip -r release-assets/gst-billing-frontend.zip Frontend/dist/
+
+          # Package Backend Bundle (clean production source without node_modules/.env)
+          tar --exclude='Backend/node_modules' --exclude='Backend/.env' --exclude='Backend/logs/*' \
+              -czf release-assets/gst-billing-backend.tar.gz Backend/
+
+          # Package Documentation Bundle
+          zip -r release-assets/gst-billing-docs.zip HOWTOUSE.md PROJECT_REPORT.md README.md Doc/
+
+          # Generate SHA256 Checksums
+          cd release-assets
+          sha256sum * > SHA256SUMS.txt
+          cd ..
+
+      - name: Extract Tag or Fallback
+        id: get_tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "TAG_NAME=${{ github.event.inputs.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_tag.outputs.TAG_NAME }}
+          name: "GSTBilling PRO ${{ steps.get_tag.outputs.TAG_NAME }} — Autonomous AI Multi-Agent Edition"
+          body: |
+            ## 🚀 GSTBilling PRO — Release ${{ steps.get_tag.outputs.TAG_NAME }}
+            
+            Enterprise Cloud GST Billing & Inventory Management System with Autonomous Multi-Agent AI Mesh for **Aayush Mobile and Computer**.
+            
+            ### ✨ What's Included:
+            - **Autonomous Multi-Agent AI Mesh**: Calibrated with Gemini 3.8 Flash & Google Generative Language API.
+            - **5,000+ Tech & 500+ Mobile Accessories Catalog Engine**: Real-world HSN codes, Indian GST calculations, and 1-click database sync.
+            - **Strict Zero-Secret Security**: Multi-platform `.gitignore` with full protection against API key / credential leaks.
+            - **Cross-Platform Support**: Tested and verified across Ubuntu, macOS, and Windows.
+            
+            ### 📦 Release Assets:
+            - `gst-billing-frontend.zip` & `.tar.gz`: Pre-built static SPA distribution.
+            - `gst-billing-backend.tar.gz`: Express & Node.js API server with auto-seeding in-memory DB fallback.
+            - `gst-billing-docs.zip`: Complete operations manual, HOWTOUSE guide, and Gujarat University project report.
+            - `SHA256SUMS.txt`: Cryptographic integrity checksums.
+          files: |
+            release-assets/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

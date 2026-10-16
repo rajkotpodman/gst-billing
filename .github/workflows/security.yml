@@ -1,0 +1,35 @@
+name: Security - Zero Secret Leakage Audit
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  secret-scan:
+    name: Secret & Credential Leakage Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify No Tracked .env or Key Files
+        run: |
+          echo "Auditing tracked git files for sensitive files..."
+          TRACKED_ENVS=$(git ls-files | grep -E "(^|/)\.env($|\..*)" | grep -v "\.env\.example" || true)
+          if [ -n "$TRACKED_ENVS" ]; then
+            echo "❌ ERROR: Found tracked .env file(s) in repository:"
+            echo "$TRACKED_ENVS"
+            exit 1
+          fi
+
+          TRACKED_KEYS=$(git ls-files | grep -E "\.(pem|key|pfx|p12|id_rsa)$" || true)
+          if [ -n "$TRACKED_KEYS" ]; then
+            echo "❌ ERROR: Found private key file(s) in repository:"
+            echo "$TRACKED_KEYS"
+            exit 1
+          fi
+
+          echo "✅ Security Audit Passed: Zero private environment files or private keys tracked in git."

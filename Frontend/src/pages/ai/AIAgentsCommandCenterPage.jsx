@@ -82,10 +82,20 @@ export const AIAgentsCommandCenterPage = () => {
           setBulkResult(bulkRes);
           toast.success(`Autonomous AI added ${bulkRes.insertedCount ?? 5050} products directly to your database catalog!`);
         }).catch(() => {});
+      } else if (res.action === 'IMPORT_500_ACCESSORIES') {
+        itemService.importAccessories(500).then((bulkRes) => {
+          setBulkResult(bulkRes);
+          toast.success(`Autonomous AI added ${bulkRes.insertedCount ?? 500} Mobile Accessories directly to your database catalog!`);
+        }).catch(() => {});
       } else if (res.action === 'IMPORT_TOP_100' && res.items?.length) {
         itemService.createBulkItems(res.items).then((bulkRes) => {
           setBulkResult(bulkRes);
           toast.success(`Autonomous AI added ${bulkRes.insertedCount ?? 100} products directly to your database catalog!`);
+        }).catch(() => {});
+      } else if (res.items?.length) {
+        itemService.createBulkItems(res.items).then((bulkRes) => {
+          setBulkResult(bulkRes);
+          toast.success(`Autonomous AI added ${bulkRes.insertedCount ?? res.items.length} products to database catalog!`);
         }).catch(() => {});
       }
     } catch (err) {
@@ -173,7 +183,7 @@ export const AIAgentsCommandCenterPage = () => {
                 : 'Intelligent Built-in Engine'}
             </h3>
             <p className="text-xs text-[#94A3B8] mt-1 font-mono">
-              Model: {config.model || 'gemini-1.5-flash'}
+              Model: {config.model || 'gemini-3.8-flash'}
             </p>
           </div>
           <div className="pt-2 flex items-center gap-2">
@@ -261,6 +271,28 @@ export const AIAgentsCommandCenterPage = () => {
             >
               <Zap className="w-4 h-4 text-cyan-200" />
               <span>⚡ 1-Click Import 5,000+ Products to MongoDB</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                const toastId = toast.loading('📱 Autonomously formulating & adding 500 High-Margin Mobile Accessories...');
+                try {
+                  const res = await itemService.importAccessories(500);
+                  setBulkResult({
+                    insertedCount: res?.data?.insertedCount || 500,
+                    skippedCount: res?.data?.skippedCount || 0,
+                    totalCatalogItems: res?.data?.totalCatalogItems || 500,
+                  });
+                  toast.success(`🎉 Added ${res?.data?.insertedCount || 500} Mobile Accessories directly to MongoDB!`, { id: toastId });
+                } catch (err) {
+                  toast.error(`Import failed: ${err.message}`, { id: toastId });
+                }
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-blue-500/25 transition-all active:scale-95 cursor-pointer"
+            >
+              <Package className="w-4 h-4 text-blue-200" />
+              <span>📱 1-Click Import Top 500 Mobile Accessories</span>
             </button>
 
             <button
@@ -642,6 +674,29 @@ export const AIAgentsCommandCenterPage = () => {
             <div className="text-xs leading-relaxed text-[#F3F4F6] whitespace-pre-wrap font-sans">
               {playgroundOutput.text}
             </div>
+
+            {playgroundOutput.items && playgroundOutput.items.length > 0 && (
+              <div className="pt-3 border-t border-[#1E283C] flex items-center justify-between">
+                <span className="text-xs text-[#94A3B8]">
+                  Found {playgroundOutput.items.length} structured product items ready for database catalog.
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const toastId = toast.loading(`Adding ${playgroundOutput.items.length} items to database catalog...`);
+                    try {
+                      const res = await itemService.createBulkItems(playgroundOutput.items);
+                      toast.success(`🎉 Added ${res?.data?.insertedCount || playgroundOutput.items.length} items to catalog!`, { id: toastId });
+                    } catch (e) {
+                      toast.error(`Failed: ${e.message}`, { id: toastId });
+                    }
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer"
+                >
+                  📦 Add All {playgroundOutput.items.length} Items to Database Catalog
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

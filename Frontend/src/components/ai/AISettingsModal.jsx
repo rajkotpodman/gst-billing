@@ -22,7 +22,11 @@ export const AISettingsModal = () => {
   const [provider, setProvider] = useState(config.provider || 'gemini');
   const [geminiKey, setGeminiKey] = useState(config.geminiKey || '');
   const [groqKey, setGroqKey] = useState(config.groqKey || '');
-  const [model, setModel] = useState(config.model || 'gemini-1.5-flash');
+  const [model, setModel] = useState(() => {
+    const cur = config.model;
+    if (!cur || cur.includes('1.5') || cur.includes('2.0')) return 'gemini-3.8-flash';
+    return cur;
+  });
   const [activeAim, setActiveAim] = useState(config.activeAim || 'MAX_MARGIN');
   const [customAim, setCustomAim] = useState(config.customAim || '');
 
@@ -167,7 +171,7 @@ export const AISettingsModal = () => {
 
             <div className="grid grid-cols-3 gap-2.5">
               {[
-                { id: 'gemini', title: 'Google Gemini', desc: 'Gemini 1.5 / 2.0 Flash' },
+                { id: 'gemini', title: 'Google Gemini', desc: 'Gemini 3.8 / 3.5 Flash' },
                 { id: 'groq', title: 'Groq Cloud', desc: 'Ultra-fast Llama 3.3 70B' },
                 { id: 'simulated', title: 'Smart Engine', desc: 'Zero API key needed' },
               ].map((p) => {
@@ -178,7 +182,7 @@ export const AISettingsModal = () => {
                     type="button"
                     onClick={() => {
                       setProvider(p.id);
-                      if (p.id === 'gemini') setModel('gemini-1.5-flash');
+                      if (p.id === 'gemini') setModel('gemini-3.8-flash');
                       if (p.id === 'groq') setModel('llama-3.3-70b-versatile');
                       setTestResult(null);
                     }}
@@ -208,9 +212,10 @@ export const AISettingsModal = () => {
                     onChange={(e) => setModel(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg bg-[#080B11] border border-[#1F2736] text-xs text-white focus:outline-none focus:border-[#6366F1]"
                   >
-                    <option value="gemini-1.5-flash">gemini-1.5-flash (Recommended, Fast & Free tier)</option>
-                    <option value="gemini-2.0-flash">gemini-2.0-flash (Latest Generation)</option>
-                    <option value="gemini-1.5-pro">gemini-1.5-pro (Deep reasoning)</option>
+                    <option value="gemini-3.8-flash">gemini-3.8-flash (Recommended, Next-Gen Flash)</option>
+                    <option value="gemini-3.5-flash">gemini-3.5-flash (Fast & Stable)</option>
+                    <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Ultra-Fast & Lightweight)</option>
+                    <option value="gemini-2.5-pro">gemini-2.5-pro (Deep Reasoning)</option>
                   </select>
                 </div>
 

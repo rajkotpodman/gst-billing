@@ -80,6 +80,17 @@ export const itemService = {
     }
   },
 
+  async importAccessories(count = 500) {
+    try {
+      const res = await apiClient.post('/items/import-accessories', { count });
+      return res.data || res;
+    } catch (err) {
+      const { getTopMobileAccessories } = await import('../constants/products5000Catalog');
+      const items = getTopMobileAccessories(count);
+      return this.createBulkItems(items);
+    }
+  },
+
   async updateItem(id, payload) {
     try {
       const res = await apiClient.put(`/items/${id}`, payload);

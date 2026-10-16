@@ -1,4 +1,14 @@
+# Backend .gitignore - Zero Secret Leakage
 node_modules/
 .env
+.env.*
+!.env.example
 *.log
+logs/
 dist/
+build/
+coverage/
+.cache/
+.mongodb-memory-server/
+.DS_Store
+Thumbs.db

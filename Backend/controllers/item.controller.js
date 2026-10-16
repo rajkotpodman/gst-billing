@@ -189,12 +189,46 @@ export const deleteItem = asyncHandler(async (req, res) => {
   return apiResponse.success(res, 'Item deleted successfully');
 });
 
+export const importAccessories = asyncHandler(async (req, res) => {
+  const shopId = req.user.shopId;
+  const count = Math.min(1000, Math.max(10, parseInt(req.body.count || req.query.count || 500, 10)));
+  const { getTopMobileAccessories } = await import('../data/products5000Catalog.js');
+  const items = getTopMobileAccessories(count);
+
+  const existing = await Item.find({ shopId }, 'name');
+  const existingNames = new Set(existing.map((i) => i.name.toLowerCase().trim()));
+
+  const newItemsToInsert = items
+    .filter((item) => item.name && item.name.trim() && !existingNames.has(item.name.toLowerCase().trim()))
+    .map((item) => ({
+      shopId,
+      name: item.name.trim(),
+      hsnCode: item.hsnCode ? item.hsnCode.trim() : '85044030',
+      price: Math.max(0, Number(item.price) || 0),
+      gstPercent: item.gstPercent !== undefined ? Number(item.gstPercent) : 18,
+      description: item.description ? item.description.trim() : '',
+    }));
+
+  if (newItemsToInsert.length > 0) {
+    await Item.insertMany(newItemsToInsert, { ordered: false });
+  }
+
+  const totalCount = await Item.countDocuments({ shopId });
+
+  return apiResponse.created(res, `Successfully imported ${newItemsToInsert.length} top mobile accessories to catalog`, {
+    insertedCount: newItemsToInsert.length,
+    skippedCount: items.length - newItemsToInsert.length,
+    totalCatalogItems: totalCount,
+  });
+});
+
 export default {
   getItems,
   getItemById,
   createItem,
   createBulkItems,
   import5000Products,
+  importAccessories,
   updateItem,
   deleteItem,
 };
